@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { getDistrictStats, mediaTypes, states } from "@/lib/data";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,14 +43,13 @@ export function DistrictBreakdown() {
               <TableHead className="text-center">Total</TableHead>
               <TableHead className="text-center">Available</TableHead>
               <TableHead className="text-center">Booked</TableHead>
-              <TableHead className="text-center">Maintenance</TableHead>
+              <TableHead className="text-center">Coming Soon</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredStats.map((stat) => (
-              <>
+              <Fragment key={`${stat.state}-${stat.district}`}>
                 <TableRow 
-                  key={`${stat.state}-${stat.district}`}
                   className={cn(
                     "cursor-pointer hover:bg-muted/30 transition-colors",
                     expandedDistrict === `${stat.state}-${stat.district}` && "bg-muted/30"
@@ -71,13 +70,13 @@ export function DistrictBreakdown() {
                   <TableCell className="text-muted-foreground">{stat.state}</TableCell>
                   <TableCell className="text-center font-semibold">{stat.totalMedia}</TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="available">{stat.available}</Badge>
+                    <Badge variant="success">{stat.available}</Badge>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="booked">{stat.booked}</Badge>
+                    <Badge variant="destructive">{stat.booked}</Badge>
                   </TableCell>
                   <TableCell className="text-center">
-                    <Badge variant="maintenance">{stat.maintenance}</Badge>
+                    <Badge variant="warning">{stat.comingSoon}</Badge>
                   </TableCell>
                 </TableRow>
                 
@@ -107,8 +106,8 @@ export function DistrictBreakdown() {
                                     <span>{typeStats.booked}</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-warning">Maintenance:</span>
-                                    <span>{typeStats.maintenance}</span>
+                                    <span className="text-warning">Soon:</span>
+                                    <span>{typeStats.comingSoon}</span>
                                   </div>
                                 </div>
                               </div>
@@ -119,7 +118,7 @@ export function DistrictBreakdown() {
                     </TableCell>
                   </TableRow>
                 )}
-              </>
+              </Fragment>
             ))}
           </TableBody>
         </Table>

@@ -127,6 +127,7 @@ export default function Reports() {
 
   // --- Export Functions ---
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const downloadCSV = (data: any[], filename: string) => {
     if (data.length === 0) return;
     const headers = Object.keys(data[0]).filter(key => typeof data[0][key] !== 'object');
@@ -644,7 +645,7 @@ export default function Reports() {
                    </div>
                    <div>
                      <p className="text-xs text-muted-foreground">Total Revenue (Paid)</p>
-                     <p className="text-lg font-bold flex items-center justify-end"><IndianRupee className="h-4 w-4 mr-1 text-success" />{(groupData.reduce((sum, b) => sum + b.amountPaid, 0) / 100000).toFixed(1)}L</p>
+                     <p className="text-lg font-bold flex items-center justify-end"><IndianRupee className="h-4 w-4 mr-1 text-success" />{(groupData.reduce((sum, b) => sum + b.amountPaid, 0))}L</p>
                    </div>
                 </div>
               </div>

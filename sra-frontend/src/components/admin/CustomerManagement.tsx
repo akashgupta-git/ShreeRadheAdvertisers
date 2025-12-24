@@ -21,12 +21,15 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
+// Define the shape of the form data (Customer without system-generated fields)
+type CustomerFormData = Omit<Customer, 'id' | 'totalBookings' | 'totalSpent'>;
+
 interface CustomerFormProps {
   customer?: Customer;
-  availableGroups?: string[]; // Added Prop
-  onSave: (customer: Omit<Customer, 'id' | 'totalBookings' | 'totalSpent'>) => void;
+  availableGroups?: string[];
+  onSave: (customer: CustomerFormData) => void;
   onCancel: () => void;
-  onAddGroup?: (newGroup: string) => void; // Added Prop
+  onAddGroup?: (newGroup: string) => void;
 }
 
 function CustomerForm({ customer, onSave, onCancel, availableGroups = defaultGroups, onAddGroup }: CustomerFormProps) {
@@ -145,8 +148,14 @@ interface AddCustomerDialogProps {
 }
 
 export function AddCustomerDialog({ open, onOpenChange, onCustomerAdded, availableGroups, onAddGroup }: AddCustomerDialogProps) {
-  const handleSave = (data: any) => {
-    const newCustomer = { ...data, id: `CUS-${Date.now()}`, totalBookings: 0, totalSpent: 0 };
+  // Replaced 'any' with specific 'CustomerFormData' type
+  const handleSave = (data: CustomerFormData) => {
+    const newCustomer: Customer = { 
+      ...data, 
+      id: `CUS-${Date.now()}`, 
+      totalBookings: 0, 
+      totalSpent: 0 
+    };
     toast({ title: "Customer Added", description: `${data.company} added.` });
     onCustomerAdded?.(newCustomer);
     onOpenChange(false);
@@ -172,8 +181,9 @@ interface EditCustomerDialogProps {
 }
 
 export function EditCustomerDialog({ customer, open, onOpenChange, onCustomerUpdated, availableGroups, onAddGroup }: EditCustomerDialogProps) {
-  const handleSave = (data: any) => {
-    const updated = { ...customer, ...data };
+  // Replaced 'any' with specific 'CustomerFormData' type
+  const handleSave = (data: CustomerFormData) => {
+    const updated: Customer = { ...customer, ...data };
     toast({ title: "Customer Updated" });
     onCustomerUpdated?.(updated);
     onOpenChange(false);
@@ -189,7 +199,15 @@ export function EditCustomerDialog({ customer, open, onOpenChange, onCustomerUpd
   );
 }
 
-export function DeleteCustomerDialog({ customer, open, onOpenChange, onCustomerDeleted }: any) {
+// Added strict interface for DeleteDialog props
+interface DeleteCustomerDialogProps {
+  customer: Customer;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCustomerDeleted: (id: string) => void;
+}
+
+export function DeleteCustomerDialog({ customer, open, onOpenChange, onCustomerDeleted }: DeleteCustomerDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">

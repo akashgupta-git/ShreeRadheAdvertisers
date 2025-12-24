@@ -33,7 +33,7 @@ export interface Booking {
   startDate: string;
   endDate: string;
   amount: number;
-  amountPaid: number; // Added field
+  amountPaid: number;
   paymentStatus: PaymentStatus;
   paymentMode?: PaymentMode;
 }
@@ -147,10 +147,11 @@ export const getDistrictStats = (): DistrictStats[] => {
     const key = `${location.state}-${location.district}`;
     
     if (!statsMap.has(key)) {
-      const byType: Record<MediaType, { total: number; available: number; booked: number; comingSoon: number }> = {} as any;
-      mediaTypes.forEach(type => {
-        byType[type] = { total: 0, available: 0, booked: 0, comingSoon: 0 };
-      });
+      // FIX: Use reduce to initialize the object with proper typing instead of 'as any'
+      const byType = mediaTypes.reduce((acc, type) => {
+        acc[type] = { total: 0, available: 0, booked: 0, comingSoon: 0 };
+        return acc;
+      }, {} as Record<MediaType, { total: number; available: number; booked: number; comingSoon: number }>);
 
       statsMap.set(key, {
         district: location.district,

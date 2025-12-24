@@ -11,7 +11,7 @@ import { Calendar, MapPin, Clock, FileText, Search, Eye, Pencil, Trash2, IndianR
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Booking } from "@/lib/data";
+import { Booking, Customer } from "@/lib/data"; // Added Customer to import
 
 // --- VIEW DETAILS DIALOG ---
 interface ViewBookingDialogProps {
@@ -252,7 +252,7 @@ interface AllBookingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   bookings: Booking[];
-  customers: unknown[];
+  customers: Customer[]; // Changed from any[] to Customer[]
   onEdit: (booking: Booking) => void;
   onDelete: (booking: Booking) => void;
   onView: (booking: Booking) => void;

@@ -12,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { customers as initialCustomers, customerGroups as initialGroups, bookings as initialBookings, type Customer } from "@/lib/data";
+import { customers as initialCustomers, customerGroups as initialGroups, bookings as initialBookings, type Customer, type Booking } from "@/lib/data";
 import { AddCustomerDialog, EditCustomerDialog, DeleteCustomerDialog } from "@/components/admin/CustomerManagement";
 import { CreateBookingDialog } from "@/components/admin/CreateBookingDialog";
 import { CustomerGroupInsights } from "@/components/admin/CustomerGroupInsights";
@@ -23,10 +23,10 @@ import { toast } from "@/hooks/use-toast";
 // Interface for CustomerCard
 interface CustomerCardProps {
   customer: Customer;
-  bookings: any[];
-  onEditBooking: (b: any) => void;
-  onDeleteBooking: (b: any) => void;
-  onViewBooking: (b: any) => void;
+  bookings: Booking[];
+  onEditBooking: (b: Booking) => void;
+  onDeleteBooking: (b: Booking) => void;
+  onViewBooking: (b: Booking) => void;
 }
 
 function CustomerCard({ customer, bookings, onEditBooking, onDeleteBooking, onViewBooking }: CustomerCardProps) {
@@ -187,7 +187,8 @@ export default function CustomerBookings() {
   // State for Data
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
   const [groups, setGroups] = useState<string[]>(initialGroups);
-  const [allBookings, setAllBookings] = useState<any[]>(initialBookings); 
+  // Replaced any[] with Booking[]
+  const [allBookings, setAllBookings] = useState<Booking[]>(initialBookings); 
 
   const [activeTab, setActiveTab] = useState("bookings");
   
@@ -197,11 +198,11 @@ export default function CustomerBookings() {
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
   const [deleteCustomer, setDeleteCustomer] = useState<Customer | null>(null);
 
-  // Dialog States - Bookings
-  const [viewBooking, setViewBooking] = useState<any | null>(null);
-  const [editBooking, setEditBooking] = useState<any | null>(null);
-  const [deleteBooking, setDeleteBooking] = useState<any | null>(null);
-  const [allBookingsDialogOpen, setAllBookingsDialogOpen] = useState(false); // ✅ NEW STATE FOR MASTER LIST
+  // Dialog States - Bookings (Replaced any | null with Booking | null)
+  const [viewBooking, setViewBooking] = useState<Booking | null>(null);
+  const [editBooking, setEditBooking] = useState<Booking | null>(null);
+  const [deleteBooking, setDeleteBooking] = useState<Booking | null>(null);
+  const [allBookingsDialogOpen, setAllBookingsDialogOpen] = useState(false);
 
   const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -220,8 +221,8 @@ export default function CustomerBookings() {
   const handleCustomerDeleted = (customerId: string) => setCustomers(prev => prev.filter(c => c.id !== customerId));
   const handleAddGroup = (newGroup: string) => { if (!groups.includes(newGroup)) setGroups([...groups, newGroup]); };
 
-  // Booking Handlers
-  const handleUpdateBooking = (updatedBooking: any) => {
+  // Booking Handlers (Using Booking type)
+  const handleUpdateBooking = (updatedBooking: Booking) => {
     setAllBookings(prev => prev.map(b => b.id === updatedBooking.id ? updatedBooking : b));
     toast({ title: "Booking Updated", description: "Changes saved successfully." });
   };

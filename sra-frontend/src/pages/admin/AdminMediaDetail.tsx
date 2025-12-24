@@ -10,7 +10,6 @@ import {
   Maximize, 
   Lightbulb, 
   Compass, 
-  Car,
   Calendar,
   Edit,
   TrendingUp,
@@ -31,9 +30,10 @@ const AdminMediaDetail = () => {
     );
   }
 
+  // FIX: Mapped statuses to valid Badge variants
   const statusVariant = 
-    media.status === 'Available' ? 'available' :
-    media.status === 'Booked' ? 'booked' : 'maintenance';
+    media.status === 'Available' ? 'success' :
+    media.status === 'Booked' ? 'destructive' : 'warning';
 
   return (
     <div className="space-y-6">
@@ -81,7 +81,8 @@ const AdminMediaDetail = () => {
               { icon: Maximize, label: 'Size', value: media.size, color: 'primary' },
               { icon: Lightbulb, label: 'Lighting', value: media.lighting, color: 'warning' },
               { icon: Compass, label: 'Facing', value: media.facing, color: 'success' },
-              { icon: Car, label: 'Traffic', value: media.traffic, color: 'destructive' },
+              // FIX: Replaced invalid 'traffic' property with 'District'
+              { icon: MapPin, label: 'District', value: media.district, color: 'destructive' },
             ].map((spec) => (
               <Card key={spec.label} className="p-4 bg-card border-border/50">
                 <div className="flex items-center gap-3">
@@ -128,10 +129,11 @@ const AdminMediaDetail = () => {
               </div>
               <div>
                 <h3 className="font-semibold mb-2">AI Performance Insight</h3>
+                {/* FIX: Removed invalid 'traffic' property usage */}
                 <p className="text-sm text-muted-foreground">
                   This {media.type.toLowerCase()} shows <span className="text-foreground font-medium">high demand during summer months (March–June)</span> and 
                   remains underutilized during monsoon season. Consider offering promotional rates 
-                  during July–September to improve occupancy. The {media.traffic.toLowerCase()} traffic location 
+                  during July–September to improve occupancy. The high traffic location 
                   makes it ideal for brand awareness campaigns.
                 </p>
               </div>
