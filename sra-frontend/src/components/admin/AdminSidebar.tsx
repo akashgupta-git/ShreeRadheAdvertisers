@@ -6,8 +6,9 @@ import {
   PlusCircle, 
   Calendar, 
   BarChart3, 
-  Clock, // Updated Icon import
+  Clock,
   Users,
+  FileText, // Added Icon
   ChevronLeft,
   ChevronRight,
   ExternalLink
@@ -23,7 +24,8 @@ const navItems = [
   { icon: Users, label: 'Customer Bookings', path: '/admin/bookings' },
   { icon: Calendar, label: 'Availability', path: '/admin/availability' },
   { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
-  { icon: Clock, label: 'Coming Soon', path: '/admin/maintenance' }, // Renamed Label & Icon
+  { icon: FileText, label: 'Reports', path: '/admin/reports' }, // Added Reports
+  { icon: Clock, label: 'Coming Soon', path: '/admin/maintenance' },
 ];
 
 export function AdminSidebar() {

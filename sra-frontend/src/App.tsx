@@ -11,7 +11,7 @@ import Index from "./pages/Index";
 import Explore from "./pages/Explore";
 import MediaDetail from "./pages/MediaDetail";
 import Contact from "./pages/Contact";
-import About from "./pages/About"; // Ensuring About is imported
+import About from "./pages/About"; 
 
 // Admin Pages
 import Dashboard from "./pages/admin/Dashboard";
@@ -21,7 +21,8 @@ import AddMedia from "./pages/admin/AddMedia";
 import Availability from "./pages/admin/Availability";
 import Analytics from "./pages/admin/Analytics";
 import Maintenance from "./pages/admin/Maintenance";
-import CustomerBookings from "./pages/admin/CustomerBookings"; // IMPORT ADDED
+import CustomerBookings from "./pages/admin/CustomerBookings";
+import Reports from "./pages/admin/Reports";
 
 import NotFound from "./pages/NotFound";
 
@@ -49,9 +50,10 @@ const App = () => (
             <Route path="media" element={<MediaManagement />} />
             <Route path="media/new" element={<AddMedia />} />
             <Route path="media/:id" element={<AdminMediaDetail />} />
-            <Route path="bookings" element={<CustomerBookings />} /> {/* ROUTE ADDED */}
+            <Route path="bookings" element={<CustomerBookings />} />
             <Route path="availability" element={<Availability />} />
             <Route path="analytics" element={<Analytics />} />
+            <Route path="reports" element={<Reports />} /> {/* ROUTE ADDED */}
             <Route path="maintenance" element={<Maintenance />} />
           </Route>
 
