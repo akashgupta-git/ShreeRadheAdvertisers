@@ -1,16 +1,35 @@
+import { useState } from "react";
 import { StatsCard } from "@/components/admin/StatsCard";
 import { DistrictBreakdown } from "@/components/admin/DistrictBreakdown";
 import { ExpiringBookings } from "@/components/admin/ExpiringBookings";
 import { CreateBookingDialog } from "@/components/admin/CreateBookingDialog";
+import { PaymentListDialog } from "@/components/admin/PaymentManagement";
 import { Card } from "@/components/ui/card";
-import { getDashboardStats, getChartData, recentBookings } from "@/lib/data";
-import { MapPin, CheckCircle, XCircle, Clock, Building2, TrendingUp } from "lucide-react"; // Switched Wrench to Clock
+import { getDashboardStats, getChartData, recentBookings, getPaymentStats, bookings as initialBookings, Booking } from "@/lib/data";
+import { MapPin, CheckCircle, XCircle, Clock, Building2, TrendingUp, IndianRupee, AlertCircle, Wallet } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
 import { Badge } from "@/components/ui/badge";
 
 const Dashboard = () => {
   const stats = getDashboardStats();
+  const paymentStats = getPaymentStats();
   const { cityData, statusData, monthlyData } = getChartData();
+  
+  // State for Managing Bookings/Payments
+  const [allBookings, setAllBookings] = useState<Booking[]>(initialBookings);
+  
+  // State for Payment Dialog
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentFilter, setPaymentFilter] = useState<'All' | 'Pending' | 'Partially Paid' | 'Paid'>('All');
+
+  const handleUpdateBooking = (updated: Booking) => {
+    setAllBookings(prev => prev.map(b => b.id === updated.id ? updated : b));
+  };
+
+  const openPaymentDetails = (filter: 'All' | 'Pending' | 'Partially Paid' | 'Paid') => {
+    setPaymentFilter(filter);
+    setIsPaymentOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -21,7 +40,9 @@ const Dashboard = () => {
         </div>
         <CreateBookingDialog />
       </div>
-      {/* Stats Grid */}
+
+      {/* --- Media Stats Row --- */}
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Inventory Overview</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <StatsCard 
           title="Total Media" 
@@ -44,7 +65,6 @@ const Dashboard = () => {
           trend={{ value: 15, isPositive: true }}
           variant="danger"
         />
-        {/* CHANGED: Maintenance -> Coming Soon */}
         <StatsCard 
           title="Coming Soon" 
           value={stats.comingSoon} 
@@ -63,6 +83,33 @@ const Dashboard = () => {
           value={stats.districtsCount} 
           icon={TrendingUp}
           variant="default"
+        />
+      </div>
+
+      {/* --- Payment Stats Row (New Feature) --- */}
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider pt-4">Financial Insights</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatsCard 
+          title="Total Revenue Collected" 
+          value={`₹${(paymentStats.totalRevenue / 100000).toFixed(1)} L`}
+          icon={Wallet}
+          variant="success"
+          onClick={() => openPaymentDetails('Paid')}
+        />
+        <StatsCard 
+          title="Pending Dues" 
+          value={`₹${(paymentStats.pendingDues / 100000).toFixed(1)} L`}
+          icon={AlertCircle}
+          variant="danger"
+          className="border-red-200 dark:border-red-900/50"
+          onClick={() => openPaymentDetails('Pending')}
+        />
+        <StatsCard 
+          title="Partially Paid Bookings" 
+          value={paymentStats.partialCount} 
+          icon={IndianRupee}
+          variant="warning"
+          onClick={() => openPaymentDetails('Partially Paid')}
         />
       </div>
 
@@ -178,7 +225,7 @@ const Dashboard = () => {
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Booking ID</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Media ID</th>
                 <th className="text-left py-3 px-4 font-medium text-muted-foreground">Client</th>
-                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Duration</th>
+                <th className="text-left py-3 px-4 font-medium text-muted-foreground">Status</th>
                 <th className="text-right py-3 px-4 font-medium text-muted-foreground">Amount</th>
               </tr>
             </thead>
@@ -190,8 +237,8 @@ const Dashboard = () => {
                     <Badge variant="secondary">{booking.mediaId}</Badge>
                   </td>
                   <td className="py-3 px-4">{booking.client}</td>
-                  <td className="py-3 px-4 text-muted-foreground">
-                    {booking.startDate} - {booking.endDate}
+                  <td className="py-3 px-4">
+                     <span className="text-muted-foreground">Completed</span>
                   </td>
                   <td className="py-3 px-4 text-right font-medium">
                     ₹{booking.amount.toLocaleString()}
@@ -202,6 +249,15 @@ const Dashboard = () => {
           </table>
         </div>
       </Card>
+
+      {/* Payment Details Dialog */}
+      <PaymentListDialog 
+        open={isPaymentOpen}
+        onOpenChange={setIsPaymentOpen}
+        bookings={allBookings}
+        initialFilter={paymentFilter}
+        onUpdateBooking={handleUpdateBooking}
+      />
     </div>
   );
 };

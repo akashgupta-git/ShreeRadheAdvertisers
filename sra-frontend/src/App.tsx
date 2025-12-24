@@ -23,6 +23,7 @@ import Analytics from "./pages/admin/Analytics";
 import Maintenance from "./pages/admin/Maintenance";
 import CustomerBookings from "./pages/admin/CustomerBookings";
 import Reports from "./pages/admin/Reports";
+import Payments from "./pages/admin/Payments"; // Added Import
 
 import NotFound from "./pages/NotFound";
 
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="media/new" element={<AddMedia />} />
             <Route path="media/:id" element={<AdminMediaDetail />} />
             <Route path="bookings" element={<CustomerBookings />} />
+            <Route path="payments" element={<Payments />} /> {/* Added Route */}
             <Route path="availability" element={<Availability />} />
             <Route path="analytics" element={<Analytics />} />
             <Route path="reports" element={<Reports />} />

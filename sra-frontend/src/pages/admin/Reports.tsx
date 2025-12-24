@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { mediaLocations, bookings, states, districts, mediaTypes, customers, customerGroups } from "@/lib/data";
-import { FileDown, Printer, Filter, User, Check, ChevronsUpDown, Briefcase, IndianRupee, Users } from "lucide-react";
+import { FileDown, Printer, Filter, Building2, Check, ChevronsUpDown, Briefcase, IndianRupee } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,9 @@ export default function Reports() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   
+  // NEW: Payment Status Filter
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
+
   // Combobox Open States
   const [customerOpen, setCustomerOpen] = useState(false);
   const [stateOpen, setStateOpen] = useState(false);
@@ -49,9 +52,7 @@ export default function Reports() {
 
   const availableDistricts = stateFilter !== "all" ? districts[stateFilter] || [] : [];
 
-  // Filter
-
-  // 1. Inventory Report Data
+  // 1. Inventory Report Data (No Payment filter relevant here)
   const getInventoryData = () => {
     return mediaLocations.filter(item => {
       if (stateFilter !== "all" && item.state !== stateFilter) return false;
@@ -65,9 +66,13 @@ export default function Reports() {
   // 2. Bookings Report Data
   const getBookingData = () => {
     return bookings.filter(item => {
-      if (stateFilter !== "all" && item.media.state !== stateFilter) return false;
-      if (districtFilter !== "all" && item.media.district !== districtFilter) return false;
+      if (stateFilter !== "all" && item.media?.state !== stateFilter) return false;
+      if (districtFilter !== "all" && item.media?.district !== districtFilter) return false;
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      
+      // Payment Status Filter
+      if (paymentStatusFilter !== "all" && item.paymentStatus !== paymentStatusFilter) return false;
+
       if (dateRange.start && new Date(item.startDate) < new Date(dateRange.start)) return false;
       if (dateRange.end && new Date(item.endDate) > new Date(dateRange.end)) return false;
       return true;
@@ -78,8 +83,12 @@ export default function Reports() {
   const getCustomerReportData = () => {
     return bookings.filter(item => {
       if (customerFilter !== "all" && item.customerId !== customerFilter) return false;
-      if (typeFilter !== "all" && item.media.type !== typeFilter) return false;
+      if (typeFilter !== "all" && item.media?.type !== typeFilter) return false;
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      
+      // Payment Status Filter
+      if (paymentStatusFilter !== "all" && item.paymentStatus !== paymentStatusFilter) return false;
+
       if (dateRange.start && new Date(item.startDate) < new Date(dateRange.start)) return false;
       if (dateRange.end && new Date(item.endDate) > new Date(dateRange.end)) return false;
       return true;
@@ -99,8 +108,12 @@ export default function Reports() {
     // Filter bookings belonging to these customers
     return bookings.filter(item => {
       if (!targetCustomerIds.includes(item.customerId)) return false;
-      if (typeFilter !== "all" && item.media.type !== typeFilter) return false;
+      if (typeFilter !== "all" && item.media?.type !== typeFilter) return false;
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
+
+      // Payment Status Filter
+      if (paymentStatusFilter !== "all" && item.paymentStatus !== paymentStatusFilter) return false;
+
       if (dateRange.start && new Date(item.startDate) < new Date(dateRange.start)) return false;
       if (dateRange.end && new Date(item.endDate) > new Date(dateRange.end)) return false;
       return true;
@@ -142,14 +155,38 @@ export default function Reports() {
       downloadCSV(cleanData, "Media_Inventory_Report");
     } else if (activeTab === "bookings") {
       const cleanData = bookingData.map(b => ({
-        BookingID: b.id, MediaID: b.mediaId, MediaName: b.media.name, District: b.media.district, StartDate: b.startDate, EndDate: b.endDate, Status: b.status, Amount: b.amount
+        BookingID: b.id, 
+        MediaID: b.mediaId, 
+        MediaName: b.media?.name, 
+        District: b.media?.district, 
+        StartDate: b.startDate, 
+        EndDate: b.endDate, 
+        BookingStatus: b.status, 
+        ContractAmount: b.amount,
+        // Added Payment Details
+        PaymentStatus: b.paymentStatus,
+        PaidAmount: b.amountPaid,
+        BalanceDue: b.amount - b.amountPaid,
+        PaymentMode: b.paymentMode || 'N/A'
       }));
       downloadCSV(cleanData, "Booking_History_Report");
     } else if (activeTab === "customers") {
       const cleanData = customerData.map(b => {
-        const custName = customers.find(c => c.id === b.customerId)?.name || "Unknown";
+        // Changed to use Company Name
+        const custCompany = customers.find(c => c.id === b.customerId)?.company || "Unknown";
         return {
-          Customer: custName, BookingID: b.id, MediaType: b.media.type, Location: `${b.media.city}, ${b.media.district}`, StartDate: b.startDate, EndDate: b.endDate, Status: b.status, Amount: b.amount
+          Client: custCompany, 
+          BookingID: b.id, 
+          MediaType: b.media?.type, 
+          Location: `${b.media?.city}, ${b.media?.district}`, 
+          StartDate: b.startDate, 
+          EndDate: b.endDate, 
+          BookingStatus: b.status, 
+          // Added Payment Details
+          ContractAmount: b.amount,
+          PaymentStatus: b.paymentStatus,
+          PaidAmount: b.amountPaid,
+          BalanceDue: b.amount - b.amountPaid
         };
       });
       downloadCSV(cleanData, customerFilter !== "all" ? `Customer_Report_${customerFilter}` : "All_Customers_Report");
@@ -160,9 +197,13 @@ export default function Reports() {
           Group: customer?.group || "Uncategorized",
           Company: customer?.company || "Unknown",
           BookingID: b.id,
-          MediaType: b.media.type,
-          Status: b.status,
-          Amount: b.amount
+          MediaType: b.media?.type,
+          BookingStatus: b.status,
+          // Added Payment Details
+          ContractAmount: b.amount,
+          PaymentStatus: b.paymentStatus,
+          PaidAmount: b.amountPaid,
+          BalanceDue: b.amount - b.amountPaid
         };
       });
       downloadCSV(cleanData, groupFilter !== "all" ? `Group_Report_${groupFilter}` : "All_Groups_Report");
@@ -192,7 +233,6 @@ export default function Reports() {
             <TabsTrigger value="inventory">Media Inventory</TabsTrigger>
             <TabsTrigger value="bookings">Booking History</TabsTrigger>
             <TabsTrigger value="customers">Customer Reports</TabsTrigger>
-            {/* NEW TAB TRIGGER */}
             <TabsTrigger value="groups">Group Reports</TabsTrigger>
           </TabsList>
         </div>
@@ -227,26 +267,26 @@ export default function Reports() {
               {/* Customer Search (Only on Customers Tab) */}
               {activeTab === "customers" && (
                 <div className="space-y-2 flex flex-col">
-                  <Label>Customer</Label>
+                  <Label>Customer (Company)</Label>
                   <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" aria-expanded={customerOpen} className="w-full justify-between font-normal">
-                        {customerFilter !== "all" ? customers.find((c) => c.id === customerFilter)?.name : "All Customers"}
+                        {customerFilter !== "all" ? customers.find((c) => c.id === customerFilter)?.company : "All Customers"}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[300px] p-0">
                       <Command>
-                        <CommandInput placeholder="Search customer..." />
+                        <CommandInput placeholder="Search company..." />
                         <CommandList>
-                          <CommandEmpty>No customer found.</CommandEmpty>
+                          <CommandEmpty>No company found.</CommandEmpty>
                           <CommandGroup>
                             <CommandItem value="all customers" onSelect={() => { setCustomerFilter("all"); setCustomerOpen(false); }}>
                               <Check className={cn("mr-2 h-4 w-4", customerFilter === "all" ? "opacity-100" : "opacity-0")} /> All Customers
                             </CommandItem>
                             {customers.map((customer) => (
-                              <CommandItem key={customer.id} value={customer.name} onSelect={() => { setCustomerFilter(customer.id); setCustomerOpen(false); }}>
-                                <Check className={cn("mr-2 h-4 w-4", customerFilter === customer.id ? "opacity-100" : "opacity-0")} /> {customer.name}
+                              <CommandItem key={customer.id} value={customer.company} onSelect={() => { setCustomerFilter(customer.id); setCustomerOpen(false); }}>
+                                <Check className={cn("mr-2 h-4 w-4", customerFilter === customer.id ? "opacity-100" : "opacity-0")} /> {customer.company}
                               </CommandItem>
                             ))}
                           </CommandGroup>
@@ -345,7 +385,7 @@ export default function Reports() {
 
               {/* Status */}
               <div className="space-y-2">
-                <Label>Status</Label>
+                <Label>Booking Status</Label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
                   <SelectContent>
@@ -366,6 +406,22 @@ export default function Reports() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* NEW: Payment Status Filter (Only when not in inventory) */}
+              {activeTab !== "inventory" && (
+                <div className="space-y-2">
+                  <Label>Payment Status</Label>
+                  <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                    <SelectTrigger><SelectValue placeholder="All Payments" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Payments</SelectItem>
+                      <SelectItem value="Paid">Paid</SelectItem>
+                      <SelectItem value="Partially Paid">Partially Paid</SelectItem>
+                      <SelectItem value="Pending">Pending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Date Filters */}
@@ -388,7 +444,7 @@ export default function Reports() {
         <TabsContent value="inventory" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Inventory Report Preview</CardTitle>
+              <CardTitle>Media Inventory Report</CardTitle>
               <CardDescription>Showing {inventoryData.length} locations.</CardDescription>
             </CardHeader>
             <CardContent>
@@ -441,22 +497,46 @@ export default function Reports() {
                       <TableHead>Media</TableHead>
                       <TableHead>Duration</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
+                      {/* Added Payment Columns */}
+                      <TableHead>Payment</TableHead>
+                      <TableHead className="text-right">Paid / Balance</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {bookingData.slice(0, 50).map((booking) => (
-                      <TableRow key={booking.id}>
-                        <TableCell className="font-mono text-xs">{booking.id}</TableCell>
-                        <TableCell>
-                          <div className="font-medium">{booking.media.name}</div>
-                          <div className="text-xs text-muted-foreground">{booking.media.district}</div>
-                        </TableCell>
-                        <TableCell className="text-sm">{booking.startDate} to {booking.endDate}</TableCell>
-                        <TableCell><Badge variant={booking.status === 'Active' ? 'success' : 'outline'}>{booking.status}</Badge></TableCell>
-                        <TableCell className="text-right">₹{booking.amount.toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
+                    {bookingData.slice(0, 50).map((booking) => {
+                      const balance = booking.amount - booking.amountPaid;
+                      return (
+                        <TableRow key={booking.id}>
+                          <TableCell className="font-mono text-xs">{booking.id}</TableCell>
+                          <TableCell>
+                            <div className="font-medium">{booking.media?.name}</div>
+                            <div className="text-xs text-muted-foreground">{booking.media?.district}</div>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            <div className="text-xs">{booking.startDate}</div>
+                            <div className="text-xs text-muted-foreground">{booking.endDate}</div>
+                          </TableCell>
+                          <TableCell><Badge variant={booking.status === 'Active' ? 'success' : 'outline'}>{booking.status}</Badge></TableCell>
+                          
+                          {/* Payment Data */}
+                          <TableCell>
+                            <Badge 
+                              variant={
+                                booking.paymentStatus === 'Paid' ? 'success' : 
+                                booking.paymentStatus === 'Partially Paid' ? 'warning' : 'destructive'
+                              }
+                              className="text-[10px]"
+                            >
+                              {booking.paymentStatus}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                             <div className="text-xs font-medium text-success">₹{booking.amountPaid.toLocaleString()}</div>
+                             {balance > 0 && <div className="text-xs text-destructive">Due: ₹{balance.toLocaleString()}</div>}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -471,13 +551,14 @@ export default function Reports() {
                 <div>
                   <CardTitle>Customer Performance Report</CardTitle>
                   <CardDescription>
-                    {customerFilter === 'all' ? "Showing bookings for ALL customers." : `Showing bookings for ${customers.find(c => c.id === customerFilter)?.name}.`}
+                    {customerFilter === 'all' ? "Showing bookings for ALL customers." : `Showing bookings for ${customers.find(c => c.id === customerFilter)?.company}.`}
                   </CardDescription>
                 </div>
                 {customerFilter !== 'all' && (
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Total Spent (Filtered)</p>
-                    <p className="text-xl font-bold">₹{customerData.reduce((sum, b) => sum + b.amount, 0).toLocaleString()}</p>
+                    <p className="text-xl font-bold">₹{customerData.reduce((sum, b) => sum + b.amountPaid, 0).toLocaleString()}</p>
+                    <p className="text-xs text-muted-foreground">Contract Value: ₹{customerData.reduce((sum, b) => sum + b.amount, 0).toLocaleString()}</p>
                   </div>
                 )}
               </div>
@@ -487,19 +568,18 @@ export default function Reports() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>ID</TableHead>
+                      <TableHead>Client (Company)</TableHead>
                       <TableHead>Media</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Duration</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
+                      {/* Added Payment Columns */}
+                      <TableHead>Payment</TableHead>
+                      <TableHead className="text-right">Paid / Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {customerData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No bookings found for the selected criteria.</TableCell>
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No bookings found for the selected criteria.</TableCell>
                       </TableRow>
                     ) : (
                       customerData.slice(0, 50).map((booking) => {
@@ -508,16 +588,34 @@ export default function Reports() {
                           <TableRow key={booking.id}>
                             <TableCell className="font-medium">
                               <div className="flex items-center gap-2">
-                                <User className="h-3 w-3 text-muted-foreground" />
-                                {customer?.name || "Unknown"}
+                                {/* Changed Icon to Building2 and Displayed Company Name */}
+                                <Building2 className="h-3 w-3 text-muted-foreground" />
+                                {customer?.company || "Unknown"}
                               </div>
+                              <div className="text-xs text-muted-foreground ml-5">{booking.id}</div>
                             </TableCell>
-                            <TableCell className="font-mono text-xs">{booking.id}</TableCell>
-                            <TableCell>{booking.media.type}</TableCell>
-                            <TableCell className="text-sm">{booking.media.city}</TableCell>
-                            <TableCell className="text-sm">{booking.startDate} to {booking.endDate}</TableCell>
+                            <TableCell>
+                              <div className="text-sm">{booking.media?.type}</div>
+                              <div className="text-xs text-muted-foreground">{booking.media?.city}</div>
+                            </TableCell>
                             <TableCell><Badge variant={booking.status === 'Active' ? 'success' : booking.status === 'Completed' ? 'secondary' : 'outline'}>{booking.status}</Badge></TableCell>
-                            <TableCell className="text-right">₹{booking.amount.toLocaleString()}</TableCell>
+                            
+                            {/* Payment Data */}
+                            <TableCell>
+                              <Badge 
+                                variant={
+                                  booking.paymentStatus === 'Paid' ? 'success' : 
+                                  booking.paymentStatus === 'Partially Paid' ? 'warning' : 'destructive'
+                                }
+                                className="text-[10px]"
+                              >
+                                {booking.paymentStatus}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="font-medium">₹{booking.amountPaid.toLocaleString()}</div>
+                              <div className="text-xs text-muted-foreground">of ₹{booking.amount.toLocaleString()}</div>
+                            </TableCell>
                           </TableRow>
                         );
                       })
@@ -545,8 +643,8 @@ export default function Reports() {
                      <p className="text-lg font-bold flex items-center justify-end"><Briefcase className="h-4 w-4 mr-1 text-primary" />{groupData.length}</p>
                    </div>
                    <div>
-                     <p className="text-xs text-muted-foreground">Total Revenue</p>
-                     <p className="text-lg font-bold flex items-center justify-end"><IndianRupee className="h-4 w-4 mr-1 text-success" />{(groupData.reduce((sum, b) => sum + b.amount, 0) / 100000).toFixed(1)}L</p>
+                     <p className="text-xs text-muted-foreground">Total Revenue (Paid)</p>
+                     <p className="text-lg font-bold flex items-center justify-end"><IndianRupee className="h-4 w-4 mr-1 text-success" />{(groupData.reduce((sum, b) => sum + b.amountPaid, 0) / 100000).toFixed(1)}L</p>
                    </div>
                 </div>
               </div>
@@ -559,31 +657,46 @@ export default function Reports() {
                       <TableHead>Company</TableHead>
                       <TableHead>Group</TableHead>
                       <TableHead>Media Type</TableHead>
-                      <TableHead>Start Date</TableHead>
-                      <TableHead>End Date</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
+                      {/* Added Payment Columns */}
+                      <TableHead>Payment</TableHead>
+                      <TableHead className="text-right">Paid / Balance</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {groupData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No bookings found for the selected group.</TableCell>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No bookings found for the selected group.</TableCell>
                       </TableRow>
                     ) : (
                       groupData.slice(0, 50).map((booking) => {
                          const customer = customers.find(c => c.id === booking.customerId);
+                         const balance = booking.amount - booking.amountPaid;
                          return (
                           <TableRow key={booking.id}>
                             <TableCell className="font-medium">{customer?.company || "Unknown"}</TableCell>
                             <TableCell>
                                 <Badge variant="outline" className="font-normal">{customer?.group || "N/A"}</Badge>
                             </TableCell>
-                            <TableCell>{booking.media.type}</TableCell>
-                            <TableCell className="text-sm">{booking.startDate}</TableCell>
-                            <TableCell className="text-sm">{booking.endDate}</TableCell>
+                            <TableCell>{booking.media?.type}</TableCell>
                             <TableCell><Badge variant={booking.status === 'Active' ? 'success' : booking.status === 'Completed' ? 'secondary' : 'outline'}>{booking.status}</Badge></TableCell>
-                            <TableCell className="text-right">₹{booking.amount.toLocaleString()}</TableCell>
+                            
+                            {/* Payment Data */}
+                            <TableCell>
+                              <Badge 
+                                variant={
+                                  booking.paymentStatus === 'Paid' ? 'success' : 
+                                  booking.paymentStatus === 'Partially Paid' ? 'warning' : 'destructive'
+                                }
+                                className="text-[10px]"
+                              >
+                                {booking.paymentStatus}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                               <div className="text-xs font-medium">₹{booking.amountPaid.toLocaleString()}</div>
+                               {balance > 0 && <div className="text-xs text-destructive">Bal: ₹{balance.toLocaleString()}</div>}
+                            </TableCell>
                           </TableRow>
                         );
                       })

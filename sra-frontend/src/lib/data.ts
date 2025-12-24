@@ -1,7 +1,7 @@
 export type MediaType = 'Unipole' | 'Hoarding' | 'Gantry' | 'Kiosk' | 'Digital LED';
 export type MediaStatus = 'Available' | 'Booked' | 'Coming Soon';
-export type PaymentStatus = 'Paid' | 'Pending';
-export type PaymentMode = 'Cash' | 'Cheque' | 'Online';
+export type PaymentStatus = 'Paid' | 'Pending' | 'Partially Paid';
+export type PaymentMode = 'Cash' | 'Cheque' | 'Online' | 'Bank Transfer';
 
 export interface MediaLocation {
   id: string;
@@ -33,6 +33,7 @@ export interface Booking {
   startDate: string;
   endDate: string;
   amount: number;
+  amountPaid: number; // Added field
   paymentStatus: PaymentStatus;
   paymentMode?: PaymentMode;
 }
@@ -229,7 +230,6 @@ export const getChartData = () => {
   return { cityData, statusData, monthlyData };
 };
 
-// No longer used directly, but kept for legacy or potential direct usage
 export const recentBookings = [
   { id: 'BK-001', mediaId: 'OAM-00001', client: 'ABC Corp', startDate: '2024-01-15', endDate: '2024-03-15', amount: 450000 },
   { id: 'BK-002', mediaId: 'OAM-00015', client: 'XYZ Ltd', startDate: '2024-02-01', endDate: '2024-04-30', amount: 520000 },
@@ -318,10 +318,36 @@ export const getBookingsByCustomerId = (customerId: string): Booking[] => {
     const randomMedia = mediaLocations[Math.floor(Math.random() * mediaLocations.length)];
     const status = i === 0 ? 'Active' : (i < 3 ? 'Upcoming' : 'Completed');
     
-    // Assign Paid/Pending & Payment Mode
-    const isPaid = status === 'Completed' || Math.random() > 0.4;
-    const modes: PaymentMode[] = ['Cash', 'Cheque', 'Online'];
-    const paymentMode = isPaid ? modes[0] : undefined;
+    // Calculate Amount
+    const amount = randomMedia.pricePerMonth * 3;
+
+    // Determine Payment Status & Amount Paid
+    let paymentStatus: PaymentStatus;
+    let amountPaid: number;
+    let paymentMode: PaymentMode | undefined;
+    const modes: PaymentMode[] = ['Cash', 'Cheque', 'Online', 'Bank Transfer'];
+
+    if (status === 'Completed') {
+      paymentStatus = 'Paid';
+      amountPaid = amount;
+      paymentMode = modes[Math.floor(Math.random() * modes.length)];
+    } else {
+      // Randomly assign payment status for Active/Upcoming
+      const rand = Math.random();
+      if (rand > 0.6) {
+        paymentStatus = 'Paid';
+        amountPaid = amount;
+        paymentMode = modes[Math.floor(Math.random() * modes.length)];
+      } else if (rand > 0.3) {
+        paymentStatus = 'Partially Paid';
+        amountPaid = Math.floor(amount * (Math.random() * 0.5 + 0.2)); // 20% to 70% paid
+        paymentMode = modes[Math.floor(Math.random() * modes.length)];
+      } else {
+        paymentStatus = 'Pending';
+        amountPaid = 0;
+        paymentMode = undefined;
+      }
+    }
 
     bookings.push({
       id: `BK-${customerId.split('-')[1]}-${String(i + 1).padStart(3, '0')}`,
@@ -331,8 +357,9 @@ export const getBookingsByCustomerId = (customerId: string): Booking[] => {
       status: status,
       startDate: status === 'Completed' ? '2023-01-01' : '2024-04-01',
       endDate: status === 'Completed' ? '2023-03-01' : '2024-06-01',
-      amount: randomMedia.pricePerMonth * 3,
-      paymentStatus: isPaid ? 'Paid' : 'Pending',
+      amount: amount,
+      amountPaid: amountPaid,
+      paymentStatus: paymentStatus,
       paymentMode: paymentMode,
     });
   }
@@ -345,4 +372,29 @@ export const bookings = customers.flatMap(c => getBookingsByCustomerId(c.id));
 
 export const getCustomerById = (id: string) => {
   return customers.find(c => c.id === id);
+};
+
+export const getPaymentStats = () => {
+  let totalRevenue = 0; // Total collected
+  let pendingDues = 0;  // Total remaining to be collected
+  let partialCount = 0;
+  let pendingCount = 0;
+  let paidCount = 0;
+
+  bookings.forEach(b => {
+    totalRevenue += b.amountPaid;
+    pendingDues += (b.amount - b.amountPaid);
+
+    if (b.paymentStatus === 'Partially Paid') partialCount++;
+    else if (b.paymentStatus === 'Pending') pendingCount++;
+    else if (b.paymentStatus === 'Paid') paidCount++;
+  });
+
+  return {
+    totalRevenue,
+    pendingDues,
+    partialCount,
+    pendingCount,
+    paidCount
+  };
 };

@@ -8,7 +8,8 @@ import {
   BarChart3, 
   Clock,
   Users,
-  FileText, // Added Icon
+  FileText,
+  CreditCard, // Added Icon
   ChevronLeft,
   ChevronRight,
   ExternalLink
@@ -22,9 +23,10 @@ const navItems = [
   { icon: MapPin, label: 'Media Management', path: '/admin/media' },
   { icon: PlusCircle, label: 'Add Media', path: '/admin/media/new' },
   { icon: Users, label: 'Customer Bookings', path: '/admin/bookings' },
+  { icon: CreditCard, label: 'Payments', path: '/admin/payments' }, // Added Item
   { icon: Calendar, label: 'Availability', path: '/admin/availability' },
   { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
-  { icon: FileText, label: 'Reports', path: '/admin/reports' }, // Added Reports
+  { icon: FileText, label: 'Reports', path: '/admin/reports' },
   { icon: Clock, label: 'Coming Soon', path: '/admin/maintenance' },
 ];
 

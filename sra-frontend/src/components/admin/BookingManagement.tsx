@@ -7,32 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, MapPin, CreditCard, Clock, FileText, Search, Eye, Pencil, Trash2 } from "lucide-react";
+import { Calendar, MapPin, Clock, FileText, Search, Eye, Pencil, Trash2, IndianRupee } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-
-// Interface matches your booking structure
-interface Booking {
-  id: string;
-  mediaId: string;
-  customerId: string;
-  media: any;
-  status: string;
-  startDate: string;
-  endDate: string;
-  amount: number;
-}
+import { Booking } from "@/lib/data";
 
 // --- VIEW DETAILS DIALOG ---
 interface ViewBookingDialogProps {
-  booking: Booking;
+  booking: Booking | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export function ViewBookingDialog({ booking, open, onOpenChange }: ViewBookingDialogProps) {
   if (!booking) return null;
+
+  const balance = booking.amount - booking.amountPaid;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -48,10 +39,18 @@ export function ViewBookingDialog({ booking, open, onOpenChange }: ViewBookingDi
         <div className="space-y-6 py-2">
           {/* Status Banner */}
           <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg border">
-             <span className="text-sm font-medium text-muted-foreground">Current Status</span>
-             <Badge variant={booking.status.toLowerCase() === 'active' ? 'success' : 'outline'} className="text-sm px-3 capitalize">
-               {booking.status}
-             </Badge>
+             <div className="flex flex-col">
+               <span className="text-xs font-medium text-muted-foreground">Booking Status</span>
+               <Badge variant={booking.status.toLowerCase() === 'active' ? 'success' : 'outline'} className="w-fit mt-1">
+                 {booking.status}
+               </Badge>
+             </div>
+             <div className="flex flex-col items-end">
+               <span className="text-xs font-medium text-muted-foreground">Payment Status</span>
+               <Badge variant={booking.paymentStatus === 'Paid' ? 'success' : 'warning'} className="w-fit mt-1">
+                 {booking.paymentStatus}
+               </Badge>
+             </div>
           </div>
 
           <div className="grid gap-5">
@@ -87,10 +86,25 @@ export function ViewBookingDialog({ booking, open, onOpenChange }: ViewBookingDi
 
             {/* Financial Info */}
             <div className="flex gap-3">
-               <div className="mt-1 bg-primary/10 p-2 rounded-md h-fit text-primary"><CreditCard className="h-4 w-4" /></div>
-               <div>
-                 <p className="text-sm font-medium text-muted-foreground">Total Contract Amount</p>
-                 <p className="text-2xl font-bold text-success">₹{booking.amount.toLocaleString()}</p>
+               <div className="mt-1 bg-primary/10 p-2 rounded-md h-fit text-primary"><IndianRupee className="h-4 w-4" /></div>
+               <div className="w-full">
+                 <p className="text-sm font-medium text-muted-foreground mb-1">Financials</p>
+                 <div className="grid grid-cols-2 gap-4 bg-muted/30 p-3 rounded-md">
+                   <div>
+                     <span className="text-xs text-muted-foreground">Total Amount</span>
+                     <p className="font-semibold">₹{booking.amount.toLocaleString()}</p>
+                   </div>
+                   <div>
+                     <span className="text-xs text-muted-foreground">Paid Amount</span>
+                     <p className="font-semibold text-success">₹{booking.amountPaid.toLocaleString()}</p>
+                   </div>
+                   <div className="col-span-2 border-t pt-2 mt-1 flex justify-between items-center">
+                     <span className="text-sm font-medium">Balance Due</span>
+                     <span className={balance > 0 ? "text-destructive font-bold" : "text-muted-foreground"}>
+                       ₹{balance.toLocaleString()}
+                     </span>
+                   </div>
+                 </div>
                </div>
             </div>
           </div>
@@ -106,20 +120,29 @@ export function ViewBookingDialog({ booking, open, onOpenChange }: ViewBookingDi
 
 // --- EDIT BOOKING DIALOG ---
 interface EditBookingDialogProps {
-  booking: Booking;
+  booking: Booking | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (updatedBooking: Booking) => void;
 }
 
 export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditBookingDialogProps) {
-  const [formData, setFormData] = useState(booking);
+  const [formData, setFormData] = useState<Booking | null>(null);
+
+  // Initialize form data when booking changes
+  if (booking && (!formData || formData.id !== booking.id)) {
+    setFormData(booking);
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-    onOpenChange(false);
+    if (formData) {
+      onSave(formData);
+      onOpenChange(false);
+    }
   };
+
+  if (!formData) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -194,13 +217,15 @@ export function EditBookingDialog({ booking, open, onOpenChange, onSave }: EditB
 
 // --- DELETE CONFIRMATION ---
 interface DeleteBookingDialogProps {
-  booking: Booking;
+  booking: Booking | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (id: string) => void;
 }
 
 export function DeleteBookingDialog({ booking, open, onOpenChange, onConfirm }: DeleteBookingDialogProps) {
+  if (!booking) return null;
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
@@ -226,11 +251,11 @@ export function DeleteBookingDialog({ booking, open, onOpenChange, onConfirm }: 
 interface AllBookingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  bookings: any[];
-  customers: any[];
-  onEdit: (booking: any) => void;
-  onDelete: (booking: any) => void;
-  onView: (booking: any) => void;
+  bookings: Booking[];
+  customers: unknown[];
+  onEdit: (booking: Booking) => void;
+  onDelete: (booking: Booking) => void;
+  onView: (booking: Booking) => void;
 }
 
 export function AllBookingsDialog({ 
@@ -321,16 +346,26 @@ export function AllBookingsDialog({
                         <div className="ml-4 text-muted-foreground">to {booking.endDate}</div>
                       </TableCell>
                       <TableCell>
-                        <Badge 
-                          variant={
-                            booking.status.toLowerCase() === 'active' ? 'success' : 
-                            booking.status.toLowerCase() === 'completed' ? 'secondary' : 
-                            'outline'
-                          } 
-                          className="capitalize text-xs font-normal"
-                        >
-                          {booking.status}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge 
+                            variant={
+                              booking.status.toLowerCase() === 'active' ? 'success' : 
+                              booking.status.toLowerCase() === 'completed' ? 'secondary' : 
+                              'outline'
+                            } 
+                            className="capitalize text-xs font-normal w-fit"
+                          >
+                            {booking.status}
+                          </Badge>
+                          {/* Added Payment Status Badge here too */}
+                          <span className={`text-[10px] px-1.5 rounded-sm w-fit ${
+                            booking.paymentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 
+                            booking.paymentStatus === 'Pending' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {booking.paymentStatus}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         ₹{booking.amount.toLocaleString()}
