@@ -19,6 +19,8 @@ import { CustomerGroupInsights } from "@/components/admin/CustomerGroupInsights"
 import { ManageGroupsDialog } from "@/components/admin/GroupManagement";
 import { EditBookingDialog, ViewBookingDialog, DeleteBookingDialog, AllBookingsDialog } from "@/components/admin/BookingManagement";
 import { toast } from "@/hooks/use-toast";
+import { useRecycleBin } from "@/contexts/RecycleBinContext";
+import { formatIndianRupee } from "@/lib/utils";
 
 // Interface for CustomerCard
 interface CustomerCardProps {
@@ -49,7 +51,7 @@ function CustomerCard({ customer, bookings, onEditBooking, onDeleteBooking, onVi
                 <div className="space-y-1">
                   <CardTitle className="text-lg">{customer.company}</CardTitle>
                   <p className="text-sm text-muted-foreground flex items-center gap-1">
-                    <Users className="h-3.5 w-3.5" /> {customer.name}
+                    <Badge variant="outline" className="text-xs font-normal">{customer.group || 'General'}</Badge>
                   </p>
                 </div>
               </div>
@@ -74,14 +76,11 @@ function CustomerCard({ customer, bookings, onEditBooking, onDeleteBooking, onVi
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="pt-0 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center gap-2 text-sm"><Users className="h-4 w-4 text-muted-foreground" /> <span className="font-medium">Contact:</span> <span>{customer.name}</span></div>
               <div className="flex items-center gap-2 text-sm"><Mail className="h-4 w-4 text-muted-foreground" /> <span>{customer.email}</span></div>
               <div className="flex items-center gap-2 text-sm"><Phone className="h-4 w-4 text-muted-foreground" /> <span>{customer.phone}</span></div>
               <div className="flex items-center gap-2 text-sm"><MapPin className="h-4 w-4 text-muted-foreground" /> <span>{customer.address}</span></div>
-              <div className="flex items-center gap-2 text-sm md:col-span-3 border-t pt-2 mt-2">
-                 <span className="text-muted-foreground">Group:</span>
-                 <Badge variant="outline">{customer.group || 'General'}</Badge>
-              </div>
             </div>
             
             <div className="flex gap-4">
@@ -205,7 +204,6 @@ export default function CustomerBookings() {
   const [allBookingsDialogOpen, setAllBookingsDialogOpen] = useState(false);
 
   const filteredCustomers = customers.filter(customer => 
-    customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     customer.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (customer.group && customer.group.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -215,10 +213,25 @@ export default function CustomerBookings() {
   const totalRevenue = allBookings.reduce((sum, b) => sum + b.amount, 0);
 
   // --- Handlers ---
+  const { addToRecycleBin } = useRecycleBin();
   
   const handleCustomerAdded = (newCustomer: Customer) => setCustomers(prev => [...prev, newCustomer]);
   const handleCustomerUpdated = (updatedCustomer: Customer) => setCustomers(prev => prev.map(c => c.id === updatedCustomer.id ? updatedCustomer : c));
-  const handleCustomerDeleted = (customerId: string) => setCustomers(prev => prev.filter(c => c.id !== customerId));
+  
+  const handleCustomerDeleted = (customerId: string) => {
+    const customer = customers.find(c => c.id === customerId);
+    if (customer) {
+      addToRecycleBin({
+        id: customer.id,
+        type: 'customer',
+        displayName: customer.company,
+        subText: `Contact: ${customer.name} • ${customer.email}`,
+        originalData: customer,
+      });
+      setCustomers(prev => prev.filter(c => c.id !== customerId));
+    }
+  };
+  
   const handleAddGroup = (newGroup: string) => { if (!groups.includes(newGroup)) setGroups([...groups, newGroup]); };
 
   // Booking Handlers (Using Booking type)
@@ -228,8 +241,19 @@ export default function CustomerBookings() {
   };
 
   const handleDeleteBooking = (id: string) => {
-    setAllBookings(prev => prev.filter(b => b.id !== id));
-    toast({ title: "Booking Deleted", description: "Booking has been removed permanently." });
+    const booking = allBookings.find(b => b.id === id);
+    if (booking) {
+      const customer = customers.find(c => c.id === booking.customerId);
+      addToRecycleBin({
+        id: booking.id,
+        type: 'booking',
+        displayName: `Booking ${booking.id}`,
+        subText: `${customer?.company || 'Unknown'} • Contact: ${customer?.name || 'N/A'} • ₹${formatIndianRupee(booking.amount)}`,
+        originalData: booking,
+      });
+      setAllBookings(prev => prev.filter(b => b.id !== id));
+      toast({ title: "Booking Deleted", description: "Moved to Recycle Bin." });
+    }
   };
 
   return (
@@ -312,7 +336,7 @@ export default function CustomerBookings() {
 
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search customers..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 bg-background/50" />
+            <Input placeholder="Search by company name..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10 bg-background/50" />
           </div>
 
           <div className="space-y-4">
@@ -332,10 +356,10 @@ export default function CustomerBookings() {
 
         <TabsContent value="manage" className="mt-6">
           <Card className="bg-card/50">
-            <CardHeader><div className="flex justify-between"><CardTitle className="flex gap-2"><Settings className="h-5 w-5"/> Manage Customers</CardTitle><Button onClick={() => setAddCustomerOpen(true)}><Plus className="h-4 w-4 mr-2"/> Add Customer</Button></div></CardHeader>
+            <CardHeader><div className="flex justify-between"><CardTitle className="flex gap-2"><Settings className="h-5 w-5"/> Manage Clients</CardTitle><Button onClick={() => setAddCustomerOpen(true)}><Plus className="h-4 w-4 mr-2"/> Add Client</Button></div></CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Company</TableHead><TableHead>Contact</TableHead><TableHead>Group</TableHead><TableHead>Bookings</TableHead><TableHead>Spent</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Company</TableHead><TableHead>Group</TableHead><TableHead>Bookings</TableHead><TableHead>Spent</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {customers.map(c => {
                     const custBookings = allBookings.filter(b => b.customerId === c.id);
@@ -344,7 +368,6 @@ export default function CustomerBookings() {
                       <TableRow key={c.id}>
                         <TableCell className="font-mono text-xs">{c.id}</TableCell>
                         <TableCell className="font-medium">{c.company}</TableCell>
-                        <TableCell>{c.name}</TableCell>
                         <TableCell><Badge variant="outline" className="font-normal">{c.group || 'N/A'}</Badge></TableCell>
                         <TableCell><Badge variant="secondary">{custBookings.length}</Badge></TableCell>
                         <TableCell className="font-medium">₹{(spent/100000).toFixed(1)}L</TableCell>

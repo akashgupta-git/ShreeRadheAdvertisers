@@ -6,11 +6,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Phone, MapPin, Send, CheckCircle } from "lucide-react";
+import { Mail, Phone, MapPin, Send, CheckCircle, Loader2 } from "lucide-react";
+import { useSubmitContact } from "@/hooks/api/useContacts";
+import { isBackendConfigured } from "@/lib/api/config";
 
 const Contact = () => {
   const { toast } = useToast();
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submitContact = useSubmitContact();
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -20,13 +25,47 @@ const Contact = () => {
     message: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
-    toast({
-      title: "Inquiry Submitted!",
-      description: "We'll get back to you within 24 hours.",
-    });
+    
+    if (!formData.name || !formData.email || !formData.message) {
+      toast({
+        title: "Missing Fields",
+        description: "Please fill all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Submit to backend if configured
+      if (isBackendConfigured()) {
+        await submitContact.mutateAsync({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          company: formData.company,
+          mediaType: formData.mediaType as any,
+          message: formData.message,
+        });
+      }
+      
+      setSubmitted(true);
+      toast({
+        title: "Inquiry Submitted!",
+        description: "We'll get back to you within 24 hours.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to submit. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (submitted) {
@@ -41,7 +80,12 @@ const Contact = () => {
             <p className="text-muted-foreground mb-6">
               Your inquiry has been submitted successfully. Our team will contact you within 24 hours.
             </p>
-            <Button onClick={() => setSubmitted(false)}>Submit Another Inquiry</Button>
+            <Button onClick={() => {
+              setSubmitted(false);
+              setFormData({ name: '', email: '', phone: '', company: '', mediaType: '', message: '' });
+            }}>
+              Submit Another Inquiry
+            </Button>
           </Card>
         </div>
       </div>
@@ -177,12 +221,11 @@ const Contact = () => {
                       <SelectValue placeholder="Select media type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="unipole">Unipole</SelectItem>
-                      <SelectItem value="hoarding">Hoarding</SelectItem>
-                      <SelectItem value="digital-led">Digital LED</SelectItem>
-                      <SelectItem value="gantry">Gantry</SelectItem>
-                      <SelectItem value="kiosk">Kiosk</SelectItem>
-                      <SelectItem value="multiple">Multiple Types</SelectItem>
+                      <SelectItem value="Unipole">Unipole</SelectItem>
+                      <SelectItem value="Hoarding">Hoarding</SelectItem>
+                      <SelectItem value="Digital LED">Digital LED</SelectItem>
+                      <SelectItem value="Gantry">Gantry</SelectItem>
+                      <SelectItem value="Kiosk">Kiosk</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -199,9 +242,18 @@ const Contact = () => {
                   />
                 </div>
 
-                <Button type="submit" size="lg" variant="hero" className="w-full">
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Message
+                <Button type="submit" size="lg" variant="hero" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4 mr-2" />
+                      Send Message
+                    </>
+                  )}
                 </Button>
               </form>
             </Card>

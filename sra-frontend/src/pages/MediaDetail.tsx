@@ -32,8 +32,8 @@ const MediaDetail = () => {
   }
 
   const statusVariant = 
-    media.status === 'Available' ? 'available' :
-    media.status === 'Booked' ? 'booked' : 'maintenance';
+    media.status === 'Available' ? 'success' :
+    media.status === 'Booked' ? 'destructive' : 'warning';
 
   return (
     <div className="pt-20 pb-16">

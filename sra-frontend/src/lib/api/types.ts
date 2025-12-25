@@ -251,6 +251,7 @@ export interface OccupancyData {
 
 // ============= REQUEST TYPES =============
 export interface CreateMediaRequest {
+  id?: string; // Optional custom ID - if not provided, system generates one
   name: string;
   type: MediaType;
   state: string;
@@ -345,8 +346,10 @@ export interface BookingFilters {
 
 export interface CentralBinItem {
   id: string;
-  type: 'media' | 'agreement' | 'tax' | 'payment';
+  type: 'media' | 'booking' | 'customer' | 'payment' | 'agreement' | 'tax' | 'maintenance';
   displayName: string;
   subText: string;
   deletedAt: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  originalData?: any;
 }

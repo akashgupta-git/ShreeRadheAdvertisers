@@ -19,9 +19,7 @@ import {
   Users, 
   ArrowLeft, 
   UserPlus, 
-  Check, 
   ChevronsUpDown,
-  Search
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { type Customer } from "@/lib/data";
@@ -48,7 +46,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+
 
 interface ManageGroupsDialogProps {
   open: boolean;

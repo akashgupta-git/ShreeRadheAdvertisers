@@ -1,8 +1,9 @@
-// API Hooks for Payments Management
+// API Hooks for Payments Management with Backend Fallback
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
-import { API_ENDPOINTS } from '@/lib/api/config';
+import { API_ENDPOINTS, isBackendConfigured } from '@/lib/api/config';
+import { bookings as staticBookings, getPaymentStats } from '@/lib/data';
 import type {
   Payment,
   ApiResponse,
@@ -25,6 +26,21 @@ export function usePayments(filters?: { status?: string; bookingId?: string }) {
   return useQuery({
     queryKey: paymentKeys.list(filters),
     queryFn: async () => {
+      if (!isBackendConfigured()) {
+        // Transform bookings to payment-like data for preview
+        const payments = staticBookings.map(b => ({
+          id: `PAY-${b.id}`,
+          bookingId: b.id,
+          customerId: b.customerId,
+          amount: b.amountPaid,
+          totalAmount: b.amount,
+          status: b.paymentStatus,
+          mode: b.paymentMode,
+          date: b.startDate,
+        }));
+        return { success: true, data: payments as unknown as Payment[], total: payments.length };
+      }
+
       const response = await apiClient.get<PaginatedResponse<Payment>>(
         API_ENDPOINTS.PAYMENTS.LIST,
         filters
@@ -40,12 +56,16 @@ export function usePaymentById(id: string) {
   return useQuery({
     queryKey: paymentKeys.detail(id),
     queryFn: async () => {
+      if (!isBackendConfigured()) {
+        throw new Error('Backend not configured');
+      }
+
       const response = await apiClient.get<ApiResponse<Payment>>(
         API_ENDPOINTS.PAYMENTS.GET(id)
       );
       return response.data;
     },
-    enabled: !!id,
+    enabled: !!id && isBackendConfigured(),
   });
 }
 
@@ -54,6 +74,10 @@ export function usePaymentStats() {
   return useQuery({
     queryKey: paymentKeys.stats(),
     queryFn: async () => {
+      if (!isBackendConfigured()) {
+        return getPaymentStats();
+      }
+
       const response = await apiClient.get<ApiResponse<{
         totalRevenue: number;
         pendingDues: number;
@@ -73,6 +97,10 @@ export function useCreatePayment() {
 
   return useMutation({
     mutationFn: async (data: CreatePaymentRequest) => {
+      if (!isBackendConfigured()) {
+        throw new Error('Backend not configured. Please set VITE_API_URL.');
+      }
+
       const response = await apiClient.post<ApiResponse<Payment>>(
         API_ENDPOINTS.PAYMENTS.CREATE,
         data
@@ -92,6 +120,10 @@ export function useUpdatePayment() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Payment> }) => {
+      if (!isBackendConfigured()) {
+        throw new Error('Backend not configured. Please set VITE_API_URL.');
+      }
+
       const response = await apiClient.put<ApiResponse<Payment>>(
         API_ENDPOINTS.PAYMENTS.UPDATE(id),
         data
@@ -101,6 +133,25 @@ export function useUpdatePayment() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: paymentKeys.lists() });
       queryClient.invalidateQueries({ queryKey: paymentKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: paymentKeys.stats() });
+    },
+  });
+}
+
+// Delete payment
+export function useDeletePayment() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (!isBackendConfigured()) {
+        throw new Error('Backend not configured. Please set VITE_API_URL.');
+      }
+
+      await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.PAYMENTS.DELETE(id));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: paymentKeys.lists() });
       queryClient.invalidateQueries({ queryKey: paymentKeys.stats() });
     },
   });

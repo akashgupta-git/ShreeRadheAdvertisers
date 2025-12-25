@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   ArrowLeft, 
   MapPin, 
@@ -15,11 +16,46 @@ import {
   TrendingUp,
   Sparkles
 } from "lucide-react";
+import { useMediaById } from "@/hooks/api/useMedia";
+import { isBackendConfigured } from "@/lib/api/config";
+import { adaptMediaLocation } from "@/lib/services/dataService";
 
 const AdminMediaDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const media = getMediaById(id || '');
+  
+  // Try API first if backend is configured
+  const { data: apiMedia, isLoading } = useMediaById(id || '');
+  
+  // Use API data if available, otherwise fall back to static data
+  const media = isBackendConfigured() && apiMedia 
+    ? adaptMediaLocation(apiMedia as any)
+    : getMediaById(id || '');
+
+  // Show loading state when fetching from API
+  if (isBackendConfigured() && isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Skeleton className="h-[400px] w-full" />
+          </div>
+          <div className="space-y-6">
+            <Skeleton className="h-48 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!media) {
     return (
@@ -30,7 +66,6 @@ const AdminMediaDetail = () => {
     );
   }
 
-  // FIX: Mapped statuses to valid Badge variants
   const statusVariant = 
     media.status === 'Available' ? 'success' :
     media.status === 'Booked' ? 'destructive' : 'warning';
@@ -128,7 +163,6 @@ const AdminMediaDetail = () => {
               </div>
               <div>
                 <h3 className="font-semibold mb-2">AI Performance Insight</h3>
-                {/* FIX: Removed invalid 'traffic' property usage */}
                 <p className="text-sm text-muted-foreground">
                   This {media.type.toLowerCase()} shows <span className="text-foreground font-medium">high demand during summer months (March–June)</span> and 
                   remains underutilized during monsoon season. Consider offering promotional rates 

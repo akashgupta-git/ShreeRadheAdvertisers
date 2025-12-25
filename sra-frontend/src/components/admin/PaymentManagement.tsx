@@ -15,11 +15,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Booking, PaymentMode, PaymentStatus, customers } from "@/lib/data";
-import { IndianRupee, CreditCard, Search, AlertCircle, CheckCircle2, Clock, Pencil, Calculator, Plus, ChevronsUpDown, Check, Trash2 } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { IndianRupee, CreditCard, Pencil, Calculator, ChevronsUpDown, Check, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
+import { cn, formatIndianRupee } from "@/lib/utils";
 import {
   Command,
   CommandEmpty,
@@ -81,7 +80,7 @@ export function RecordPaymentDialog({ booking, open, onOpenChange, onPaymentReco
     }
 
     onPaymentRecorded(booking.id, newTotalPaid, newStatus, paymentMode);
-    toast.success(`Payment of ₹${payAmount.toLocaleString('en-IN')} recorded successfully.`);
+    toast.success(`Payment of ₹${formatIndianRupee(payAmount)} recorded successfully.`);
     onOpenChange(false);
   };
 
@@ -99,16 +98,16 @@ export function RecordPaymentDialog({ booking, open, onOpenChange, onPaymentReco
           <div className="bg-muted/40 p-4 rounded-lg space-y-3 border">
              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total Contract Value:</span>
-                <span className="font-medium">₹{totalAmount.toLocaleString('en-IN')}</span>
+                <span className="font-medium">₹{formatIndianRupee(totalAmount)}</span>
              </div>
              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Already Paid:</span>
-                <span className="font-medium text-success">₹{currentPaid.toLocaleString('en-IN')}</span>
+                <span className="font-medium text-success">₹{formatIndianRupee(currentPaid)}</span>
              </div>
              <div className="h-px bg-border my-2" />
              <div className="flex justify-between font-semibold">
                 <span>Outstanding Balance:</span>
-                <span className="text-destructive">₹{balance.toLocaleString('en-IN')}</span>
+                <span className="text-destructive">₹{formatIndianRupee(balance)}</span>
              </div>
           </div>
 
@@ -126,7 +125,7 @@ export function RecordPaymentDialog({ booking, open, onOpenChange, onPaymentReco
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              New Balance will be: <span className={remainingAfterPayment === 0 ? "text-success font-bold" : "text-foreground"}>₹{Math.max(0, remainingAfterPayment).toLocaleString()}</span>
+              New Balance will be: <span className={remainingAfterPayment === 0 ? "text-success font-bold" : "text-foreground"}>₹{formatIndianRupee(Math.max(0, remainingAfterPayment))}</span>
             </p>
           </div>
 
@@ -249,7 +248,7 @@ export function NewPaymentDialog({ open, onOpenChange, bookings, onPaymentRecord
                          return (
                            <CommandItem
                              key={booking.id}
-                             value={`${booking.id} ${client?.company || ''} ${client?.name || ''}`}
+                             value={`${booking.id} ${client?.company || ''}`}
                              onSelect={() => {
                                setSelectedBookingId(booking.id);
                                setOpenCombobox(false);
@@ -263,9 +262,9 @@ export function NewPaymentDialog({ open, onOpenChange, bookings, onPaymentRecord
                              />
                              <div className="flex flex-col">
                                <span className="font-medium">{booking.id}</span>
-                               <span className="text-xs text-muted-foreground">
-                                 {client?.company} • ₹{booking.amount.toLocaleString()}
-                               </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {client?.company} • ₹{formatIndianRupee(booking.amount)}
+                                </span>
                              </div>
                            </CommandItem>
                          );
@@ -287,7 +286,7 @@ export function NewPaymentDialog({ open, onOpenChange, bookings, onPaymentRecord
                  <div className="flex justify-between">
                    <span className="text-muted-foreground">Outstanding Balance:</span>
                    <span className={cn("font-bold", currentBalance > 0 ? "text-destructive" : "text-success")}>
-                     ₹{currentBalance.toLocaleString()}
+                     ₹{formatIndianRupee(currentBalance)}
                    </span>
                  </div>
               </div>
@@ -303,7 +302,7 @@ export function NewPaymentDialog({ open, onOpenChange, bookings, onPaymentRecord
                   disabled={currentBalance <= 0}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Balance after payment: <span className="font-medium">₹{Math.max(0, remainingAfter).toLocaleString()}</span>
+                  Balance after payment: <span className="font-medium">₹{formatIndianRupee(Math.max(0, remainingAfter))}</span>
                 </p>
               </div>
 
@@ -408,12 +407,12 @@ export function EditPaymentDialog({ booking, open, onOpenChange, onSave }: EditP
           <div className="grid grid-cols-2 gap-4">
              <div className="space-y-1">
                <Label className="text-xs text-muted-foreground">Contract Value</Label>
-               <div className="text-lg font-semibold">₹{booking.amount.toLocaleString()}</div>
+               <div className="text-lg font-semibold">₹{formatIndianRupee(booking.amount)}</div>
              </div>
              <div className="space-y-1 text-right">
                <Label className="text-xs text-muted-foreground">Current Balance</Label>
                <div className={balance > 0 ? "text-lg font-semibold text-destructive" : "text-lg font-semibold text-success"}>
-                 ₹{balance.toLocaleString()}
+                 ₹{formatIndianRupee(balance)}
                </div>
              </div>
           </div>
@@ -510,10 +509,11 @@ export function PaymentListDialog({ open, onOpenChange, bookings, initialFilter 
 
   const filteredBookings = bookings.filter(b => {
     const matchesFilter = filter === 'All' ? true : b.paymentStatus === filter;
+    const customer = customers.find(c => c.id === b.customerId);
     const matchesSearch = 
       b.id.toLowerCase().includes(search.toLowerCase()) || 
       b.media?.name.toLowerCase().includes(search.toLowerCase()) ||
-      customers.find(c => c.id === b.customerId)?.name.toLowerCase().includes(search.toLowerCase());
+      customer?.company.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -587,7 +587,7 @@ export function PaymentListDialog({ open, onOpenChange, bookings, initialFilter 
                 ) : (
                   filteredBookings.map((booking) => {
                     const customer = customers.find(c => c.id === booking.customerId);
-                    const progress = Math.min(100, (booking.amountPaid / booking.amount) * 100);
+                    void (booking.amountPaid / booking.amount); // progress calc reference
                     const isFullyPaid = booking.paymentStatus === 'Paid';
 
                     return (

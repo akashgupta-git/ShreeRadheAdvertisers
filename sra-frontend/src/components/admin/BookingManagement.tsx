@@ -11,7 +11,8 @@ import { Calendar, MapPin, Clock, FileText, Search, Eye, Pencil, Trash2, IndianR
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Booking, Customer } from "@/lib/data"; // Added Customer to import
+import { Booking, Customer } from "@/lib/data";
+import { formatIndianRupee } from "@/lib/utils";
 
 // --- VIEW DETAILS DIALOG ---
 interface ViewBookingDialogProps {
@@ -92,16 +93,16 @@ export function ViewBookingDialog({ booking, open, onOpenChange }: ViewBookingDi
                  <div className="grid grid-cols-2 gap-4 bg-muted/30 p-3 rounded-md">
                    <div>
                      <span className="text-xs text-muted-foreground">Total Amount</span>
-                     <p className="font-semibold">₹{booking.amount.toLocaleString()}</p>
+                     <p className="font-semibold">₹{formatIndianRupee(booking.amount)}</p>
                    </div>
                    <div>
                      <span className="text-xs text-muted-foreground">Paid Amount</span>
-                     <p className="font-semibold text-success">₹{booking.amountPaid.toLocaleString()}</p>
+                     <p className="font-semibold text-success">₹{formatIndianRupee(booking.amountPaid)}</p>
                    </div>
                    <div className="col-span-2 border-t pt-2 mt-1 flex justify-between items-center">
                      <span className="text-sm font-medium">Balance Due</span>
                      <span className={balance > 0 ? "text-destructive font-bold" : "text-muted-foreground"}>
-                       ₹{balance.toLocaleString()}
+                       ₹{formatIndianRupee(balance)}
                      </span>
                    </div>
                  </div>
@@ -330,7 +331,7 @@ export function AllBookingsDialog({
                       <TableCell className="font-mono text-xs font-medium">{booking.id}</TableCell>
                       <TableCell>
                         <div className="font-medium text-sm">{customer?.company || "Unknown"}</div>
-                        <div className="text-xs text-muted-foreground">{customer?.name}</div>
+                        <div className="text-xs text-muted-foreground">{customer?.group}</div>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm truncate max-w-[180px]" title={booking.media?.name}>
@@ -368,7 +369,7 @@ export function AllBookingsDialog({
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-medium">
-                        ₹{booking.amount.toLocaleString()}
+                        ₹{formatIndianRupee(booking.amount)}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">

@@ -1,27 +1,25 @@
-// Data Service - Provides a unified interface for data access
-// This allows seamless transition between static data (offline/development) and API data (production)
-// When backend is connected, these functions will use the API hooks
-// When offline, they fall back to static data from lib/data.ts
+// Data Service - Provides unified interface for data access
+// Uses API when backend is configured, falls back to static data otherwise
 
+import { API_BASE_URL } from '@/lib/api/config';
 import type { 
   MediaLocation as ApiMediaLocation, 
   Booking as ApiBooking,
   Customer as ApiCustomer,
   MediaFilters,
   BookingFilters,
-  DashboardStats,
 } from '@/lib/api/types';
 
-// Re-export types for components to use
+// Re-export types for components
 export type { MediaFilters, BookingFilters };
 
-// Determine if we should use the API (backend is configured)
+// Check if backend is properly configured
 export const isBackendConfigured = (): boolean => {
-  const apiUrl = import.meta.env.VITE_API_URL;
-  return !!apiUrl && apiUrl !== 'https://your-backend.onrender.com';
+  const url = API_BASE_URL;
+  return !!url && url !== 'http://localhost:5000' && !url.includes('your-backend');
 };
 
-// Type adapter: Convert API types to match existing frontend types
+// Type adapter: Convert API types to frontend types
 export const adaptMediaLocation = (apiMedia: ApiMediaLocation) => ({
   id: apiMedia.id || apiMedia._id,
   name: apiMedia.name,
@@ -35,12 +33,18 @@ export const adaptMediaLocation = (apiMedia: ApiMediaLocation) => ({
   lighting: apiMedia.lighting,
   facing: apiMedia.facing,
   image: apiMedia.image,
+  images: apiMedia.images,
   pricePerMonth: apiMedia.pricePerMonth,
+  latitude: apiMedia.latitude,
+  longitude: apiMedia.longitude,
+  landmark: apiMedia.landmark,
   occupancyRate: apiMedia.occupancyRate,
   totalDaysBooked: apiMedia.totalDaysBooked,
   bookedDates: apiMedia.bookedDates,
   deleted: apiMedia.deleted,
   deletedAt: apiMedia.deletedAt,
+  createdAt: apiMedia.createdAt,
+  updatedAt: apiMedia.updatedAt,
 });
 
 export const adaptBooking = (apiBooking: ApiBooking) => ({
@@ -56,6 +60,9 @@ export const adaptBooking = (apiBooking: ApiBooking) => ({
   amountPaid: apiBooking.amountPaid,
   paymentStatus: apiBooking.paymentStatus,
   paymentMode: apiBooking.paymentMode,
+  notes: apiBooking.notes,
+  createdAt: apiBooking.createdAt,
+  updatedAt: apiBooking.updatedAt,
 });
 
 export const adaptCustomer = (apiCustomer: ApiCustomer) => ({
@@ -68,9 +75,11 @@ export const adaptCustomer = (apiCustomer: ApiCustomer) => ({
   group: apiCustomer.group,
   totalBookings: apiCustomer.totalBookings,
   totalSpent: apiCustomer.totalSpent,
+  createdAt: apiCustomer.createdAt,
+  updatedAt: apiCustomer.updatedAt,
 });
 
-// Helper to format currency (Indian Rupees)
+// Format currency (Indian Rupees)
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -79,7 +88,7 @@ export const formatCurrency = (amount: number): string => {
   }).format(amount);
 };
 
-// Helper to format date
+// Format date
 export const formatDate = (dateString: string): string => {
   return new Date(dateString).toLocaleDateString('en-IN', {
     day: 'numeric',

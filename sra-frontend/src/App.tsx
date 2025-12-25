@@ -3,7 +3,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext"; // 1. Import the AuthProvider
+import { AuthProvider } from "@/contexts/AuthContext";
+import { LocationDataProvider } from "@/contexts/LocationDataContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PublicLayout } from "@/layouts/PublicLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
 
@@ -15,6 +17,7 @@ import Contact from "./pages/Contact";
 import About from "./pages/About"; 
 
 // Admin Pages
+import Login from "./pages/admin/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import MediaManagement from "./pages/admin/MediaManagement";
 import AdminMediaDetail from "./pages/admin/AdminMediaDetail";
@@ -32,11 +35,11 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    {/* 2. Wrap the tree with AuthProvider so context is available to all routes */}
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
+      <LocationDataProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
         <BrowserRouter
           future={{
             v7_startTransition: true,
@@ -53,8 +56,18 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
             </Route>
 
-            {/* Admin Routes */}
-            <Route path="/admin" element={<AdminLayout />}>
+            {/* Admin Login - Outside Protected Area */}
+            <Route path="/admin/login" element={<Login />} />
+
+            {/* Protected Admin Routes */}
+            <Route 
+              path="/admin" 
+              element={
+                <ProtectedRoute>
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route index element={<Dashboard />} />
               <Route path="media" element={<MediaManagement />} />
               <Route path="media/new" element={<AddMedia />} />
@@ -72,7 +85,8 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </TooltipProvider>
+        </TooltipProvider>
+      </LocationDataProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

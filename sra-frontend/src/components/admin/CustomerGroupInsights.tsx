@@ -154,19 +154,16 @@ export function CustomerGroupInsights({ customers }: CustomerGroupInsightsProps)
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <div>
-                  {/* Company Name is Main Title */}
-                  <DialogTitle className="text-xl">{selectedCustomer.company}</DialogTitle>
-                  <DialogDescription className="flex items-center gap-2 mt-1">
-                    {/* Customer Name is secondary */}
-                    <span className="font-medium text-foreground">{selectedCustomer.name}</span>
-                    <span>•</span>
-                    <span>{selectedCustomer.phone}</span>
-                    <span>•</span>
-                    <Badge variant="outline" className="text-xs">{selectedGroup}</Badge>
-                  </DialogDescription>
-                </div>
-              </div>
+                 <div>
+                   {/* Company Name is Main Title */}
+                   <DialogTitle className="text-xl">{selectedCustomer.company}</DialogTitle>
+                   <DialogDescription className="flex items-center gap-2 mt-1">
+                     <Badge variant="outline" className="text-xs">{selectedGroup}</Badge>
+                     <span>•</span>
+                     <span>{selectedCustomer.phone}</span>
+                   </DialogDescription>
+                 </div>
+               </div>
             ) : (
               // === LEVEL 1: GROUP LIST HEADER ===
               <div>
@@ -269,9 +266,7 @@ export function CustomerGroupInsights({ customers }: CustomerGroupInsightsProps)
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {/* SWAPPED COLUMNS HERE */}
                     <TableHead>Company</TableHead>
-                    <TableHead>Client Name</TableHead>
                     <TableHead className="text-center">Bookings</TableHead>
                     <TableHead className="text-right">Total Revenue</TableHead>
                     <TableHead className="text-right">Action</TableHead>
@@ -280,7 +275,7 @@ export function CustomerGroupInsights({ customers }: CustomerGroupInsightsProps)
                 <TableBody>
                   {groupCustomers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                         No clients found in this group.
                       </TableCell>
                     </TableRow>
@@ -291,18 +286,16 @@ export function CustomerGroupInsights({ customers }: CustomerGroupInsightsProps)
                         className="cursor-pointer hover:bg-muted/50 group"
                         onClick={() => setSelectedCustomer(customer)}
                       >
-                        {/* 1. Company Name (Primary) */}
                         <TableCell className="font-medium text-primary group-hover:underline">
                           {customer.company}
-                        </TableCell>
-                        {/* 2. Customer Name (Secondary) */}
-                        <TableCell className="text-muted-foreground">
-                          {customer.name}
                         </TableCell>
                         <TableCell className="text-center">
                             <Badge variant="secondary" className="font-normal min-w-[2rem] justify-center">
                                 {customer.totalBookings}
                             </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-success">
+                            ₹{(customer.totalSpent / 100000).toFixed(2)}L
                         </TableCell>
                         <TableCell className="text-right font-bold text-success">
                             ₹{(customer.totalSpent / 100000).toFixed(2)}L

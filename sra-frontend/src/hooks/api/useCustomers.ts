@@ -1,8 +1,9 @@
-// API Hooks for Customers Management
+// API Hooks for Customers Management with Backend Fallback
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
-import { API_ENDPOINTS } from '@/lib/api/config';
+import { API_ENDPOINTS, isBackendConfigured } from '@/lib/api/config';
+import { customers as staticCustomers } from '@/lib/data';
 import type {
   Customer,
   ApiResponse,
@@ -24,6 +25,22 @@ export function useCustomers(filters?: { search?: string; group?: string }) {
   return useQuery({
     queryKey: customerKeys.list(filters),
     queryFn: async () => {
+      if (!isBackendConfigured()) {
+        let data = [...staticCustomers];
+        if (filters?.search) {
+          const q = filters.search.toLowerCase();
+          data = data.filter(c => 
+            c.name.toLowerCase().includes(q) ||
+            c.company.toLowerCase().includes(q) ||
+            c.email.toLowerCase().includes(q)
+          );
+        }
+        if (filters?.group && filters.group !== 'all') {
+          data = data.filter(c => c.group === filters.group);
+        }
+        return { success: true, data, total: data.length, page: 1, limit: 100 };
+      }
+
       const response = await apiClient.get<PaginatedResponse<Customer>>(
         API_ENDPOINTS.CUSTOMERS.LIST,
         filters
@@ -39,6 +56,12 @@ export function useCustomerById(id: string) {
   return useQuery({
     queryKey: customerKeys.detail(id),
     queryFn: async () => {
+      if (!isBackendConfigured()) {
+        const customer = staticCustomers.find(c => c.id === id);
+        if (!customer) throw new Error('Customer not found');
+        return customer;
+      }
+
       const response = await apiClient.get<ApiResponse<Customer>>(
         API_ENDPOINTS.CUSTOMERS.GET(id)
       );
@@ -54,6 +77,10 @@ export function useCreateCustomer() {
 
   return useMutation({
     mutationFn: async (data: CreateCustomerRequest) => {
+      if (!isBackendConfigured()) {
+        throw new Error('Backend not configured. Please set VITE_API_URL.');
+      }
+
       const response = await apiClient.post<ApiResponse<Customer>>(
         API_ENDPOINTS.CUSTOMERS.CREATE,
         data
@@ -72,6 +99,10 @@ export function useUpdateCustomer() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Customer> }) => {
+      if (!isBackendConfigured()) {
+        throw new Error('Backend not configured. Please set VITE_API_URL.');
+      }
+
       const response = await apiClient.put<ApiResponse<Customer>>(
         API_ENDPOINTS.CUSTOMERS.UPDATE(id),
         data
@@ -91,6 +122,10 @@ export function useDeleteCustomer() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      if (!isBackendConfigured()) {
+        throw new Error('Backend not configured. Please set VITE_API_URL.');
+      }
+
       await apiClient.delete<ApiResponse<void>>(API_ENDPOINTS.CUSTOMERS.DELETE(id));
     },
     onSuccess: () => {

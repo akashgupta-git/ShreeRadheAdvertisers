@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { 
   TenderAgreement, 
   TaxRecord, 
   ComplianceStats, 
-  TaxFrequency, 
-  TenderStatus, 
-  TaxStatus 
 } from './api/types';
 
 export type MediaType = 'Unipole' | 'Hoarding' | 'Gantry' | 'Kiosk' | 'Digital LED';
@@ -58,99 +56,16 @@ export interface DistrictStats {
   byType: Record<MediaType, { total: number; available: number; booked: number; comingSoon: number }>;
 }
 
-export const states = ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Gujarat', 'Rajasthan', 'Delhi NCR', 'Chhattisgarh'];
-
-export const districts: Record<string, string[]> = {
-  'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Nashik', 'Thane'],
-  'Karnataka': ['Bangalore', 'Mysore', 'Hubli', 'Mangalore', 'Belgaum'],
-  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Trichy', 'Salem'],
-  'Gujarat': ['Ahmedabad', 'Surat', 'Vadodara', 'Rajkot', 'Gandhinagar'],
-  'Rajasthan': ['Jaipur', 'Jodhpur', 'Udaipur', 'Kota', 'Ajmer'],
-  'Delhi NCR': ['New Delhi', 'Gurgaon', 'Noida', 'Faridabad', 'Ghaziabad'],
-  'Chhattisgarh': ["Balod","Baloda Bazar-Bhatapara","Balrampur","Bastar","Bemetara","Bijapur","Bilaspur","Dantewada","Dhamtari","Durg","Gariaband","Gaurela-Pendra-Marwahi","Janjgir-Champa","Jashpur","Kabirdham","Kanker","Khairagarh-Chhuikhadan-Gandai","Kondagaon","Korba","Korea","Mahasamund","Manendragarh-Chirmiri-Bharatpur","Mohla-Manpur-Amabagarh Chowki","Mungeli","Narayanpur","Raigarh","Raipur","Rajnandgaon","Sarangarh-Bilaigarh","Sakti","Sukma","Surajpur","Surguja"]
-
-};
-
-export const cities: Record<string, string[]> = {
-  'Mumbai': ['Andheri', 'Bandra', 'Worli', 'Powai', 'Malad'],
-  'Pune': ['Kothrud', 'Hinjewadi', 'Wakad', 'Viman Nagar', 'Koregaon Park'],
-  'Bangalore': ['Koramangala', 'Whitefield', 'Indiranagar', 'Electronic City', 'HSR Layout'],
-  'Chennai': ['Adyar', 'T Nagar', 'Anna Nagar', 'Velachery', 'Guindy'],
-  'Ahmedabad': ['Satellite', 'Vastrapur', 'Navrangpura', 'SG Highway', 'Bodakdev'],
-  'Jaipur': ['Malviya Nagar', 'C-Scheme', 'Vaishali Nagar', 'Mansarovar', 'Raja Park'],
-  'New Delhi': ['Connaught Place', 'Karol Bagh', 'Saket', 'Dwarka', 'Vasant Kunj'],
-};
+// Empty arrays - data will come from backend or be managed by admin
+export const states: string[] = [];
+export const districts: Record<string, string[]> = {};
+export const cities: Record<string, string[]> = {};
 
 export const mediaTypes: MediaType[] = ['Unipole', 'Hoarding', 'Gantry', 'Kiosk', 'Digital LED'];
 export const customerGroups = ['Corporate', 'Government', 'Agency', 'Startup', 'Non-Profit'];
 
-const generateMediaLocations = (): MediaLocation[] => {
-  const locations: MediaLocation[] = [];
-  let id = 1;
-
-  const images = [
-    'https://images.unsplash.com/photo-1533929736458-ca588d08c8be?w=800',
-    'https://images.unsplash.com/photo-1568430462989-44163eb1752f?w=800',
-    'https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=800',
-    'https://images.unsplash.com/photo-1494522855154-9297ac14b55f?w=800',
-    'https://images.unsplash.com/photo-1572035563967-3c8c6c402c55?w=800',
-    'https://images.unsplash.com/photo-1593642634315-48f5414c3ad9?w=800',
-  ];
-
-  const facings = [
-    'North', 'South', 'East', 'West', 
-    'From Mumbai towards Pune', 
-    'Towards Airport Terminal 2', 
-    'Facing Toll Plaza', 
-    'City Center Inbound',
-    'Highway Outbound'
-  ];
-
-  const sizes = ['20x10 ft', '30x15 ft', '40x20 ft', '50x25 ft', '60x30 ft'];
-  const lightings: ('Front Lit' | 'Back Lit' | 'Non-Lit' | 'Digital')[] = ['Front Lit', 'Back Lit', 'Non-Lit', 'Digital'];
-  const statuses: MediaStatus[] = ['Available', 'Booked', 'Coming Soon'];
-
-  states.forEach(state => {
-    const stateDistricts = districts[state] || [];
-    stateDistricts.forEach(district => {
-      const districtCities = cities[district] || [district];
-      districtCities.forEach(city => {
-        const numMedia = Math.floor(Math.random() * 5) + 3;
-        for (let i = 0; i < numMedia; i++) {
-          const status = statuses[Math.floor(Math.random() * statuses.length)];
-          const type = mediaTypes[Math.floor(Math.random() * mediaTypes.length)];
-          
-          locations.push({
-            id: `OAM-${String(id).padStart(5, '0')}`,
-            name: `${city} ${type} ${i + 1}`,
-            type,
-            state,
-            district,
-            city,
-            address: `${Math.floor(Math.random() * 500) + 1}, Main Road, ${city}`,
-            status,
-            size: sizes[Math.floor(Math.random() * sizes.length)],
-            lighting: type === 'Digital LED' ? 'Digital' : lightings[Math.floor(Math.random() * 3)],
-            facing: facings[Math.floor(Math.random() * facings.length)],
-            image: images[Math.floor(Math.random() * images.length)],
-            pricePerMonth: Math.floor(Math.random() * 150000) + 50000,
-            occupancyRate: Math.floor(Math.random() * 40) + 60,
-            totalDaysBooked: Math.floor(Math.random() * 200) + 50,
-            bookedDates: status === 'Booked' ? [
-              { start: '2024-01-15', end: '2024-03-15' },
-              { start: '2024-05-01', end: '2024-07-31' },
-            ] : [],
-          });
-          id++;
-        }
-      });
-    });
-  });
-
-  return locations;
-};
-
-export const mediaLocations = generateMediaLocations();
+// Empty media locations - data from backend
+export const mediaLocations: MediaLocation[] = [];
 
 export const getDistrictStats = (): DistrictStats[] => {
   const statsMap = new Map<string, DistrictStats>();
@@ -224,31 +139,13 @@ export const getChartData = () => {
     { name: 'Coming Soon', value: stats.comingSoon, fill: 'hsl(var(--warning))' },
   ];
 
-  const monthlyData = [
-    { month: 'Jan', bookings: 45, revenue: 225 },
-    { month: 'Feb', bookings: 52, revenue: 260 },
-    { month: 'Mar', bookings: 61, revenue: 305 },
-    { month: 'Apr', bookings: 58, revenue: 290 },
-    { month: 'May', bookings: 71, revenue: 355 },
-    { month: 'Jun', bookings: 68, revenue: 340 },
-    { month: 'Jul', bookings: 75, revenue: 375 },
-    { month: 'Aug', bookings: 82, revenue: 410 },
-    { month: 'Sep', bookings: 78, revenue: 390 },
-    { month: 'Oct', bookings: 85, revenue: 425 },
-    { month: 'Nov', bookings: 92, revenue: 460 },
-    { month: 'Dec', bookings: 88, revenue: 440 },
-  ];
+  const monthlyData: { month: string; bookings: number; revenue: number }[] = [];
 
   return { cityData, statusData, monthlyData };
 };
 
-export const recentBookings = [
-  { id: 'BK-001', mediaId: 'OAM-00001', client: 'ABC Corp', startDate: '2024-01-15', endDate: '2024-03-15', amount: 450000 },
-  { id: 'BK-002', mediaId: 'OAM-00015', client: 'XYZ Ltd', startDate: '2024-02-01', endDate: '2024-04-30', amount: 520000 },
-  { id: 'BK-003', mediaId: 'OAM-00023', client: 'Tech Solutions', startDate: '2024-01-20', endDate: '2024-02-28', amount: 180000 },
-  { id: 'BK-004', mediaId: 'OAM-00042', client: 'Global Ads', startDate: '2024-03-01', endDate: '2024-05-31', amount: 680000 },
-  { id: 'BK-005', mediaId: 'OAM-00056', client: 'Media Plus', startDate: '2024-02-15', endDate: '2024-04-15', amount: 390000 },
-];
+// Empty recent bookings
+export const recentBookings: { id: string; mediaId: string; client: string; startDate: string; endDate: string; amount: number }[] = [];
 
 export interface Customer {
   id: string;
@@ -262,133 +159,24 @@ export interface Customer {
   totalSpent: number;
 }
 
-export const customers: Customer[] = [
-  {
-    id: 'CUST-001',
-    name: 'Rajesh Kumar',
-    company: 'Tech Solutions Pvt Ltd',
-    email: 'rajesh@techsolutions.com',
-    phone: '+91 98765 43210',
-    address: '123, Tech Park, Electronic City, Bangalore',
-    group: 'Corporate',
-    totalBookings: 8,
-    totalSpent: 4500000
-  },
-  {
-    id: 'CUST-002',
-    name: 'Priya Sharma',
-    company: 'Green Earth Organics',
-    email: 'priya@greenearth.com',
-    phone: '+91 98989 89898',
-    address: '45, Green Avenue, Pune',
-    group: 'Startup',
-    totalBookings: 5,
-    totalSpent: 2800000
-  },
-  {
-    id: 'CUST-003',
-    name: 'Amit Patel',
-    company: 'Gujrat Textiles',
-    email: 'amit@gtextiles.com',
-    phone: '+91 76543 21098',
-    address: 'GIDC, Surat, Gujarat',
-    group: 'Corporate',
-    totalBookings: 12,
-    totalSpent: 8500000
-  },
-  {
-    id: 'CUST-004',
-    name: 'Sneha Reddy',
-    company: 'Urban Styles',
-    email: 'sneha@urbanstyles.com',
-    phone: '+91 91234 56789',
-    address: 'Banjara Hills, Hyderabad',
-    group: 'Agency',
-    totalBookings: 3,
-    totalSpent: 1200000
-  },
-  {
-    id: 'CUST-005',
-    name: 'Vikram Singh',
-    company: 'Royal Rajasthan Heritage',
-    email: 'vikram@royalheritage.com',
-    phone: '+91 99887 76655',
-    address: 'Civil Lines, Jaipur',
-    group: 'Government',
-    totalBookings: 15,
-    totalSpent: 9200000
-  }
-];
+// Empty customers array - data from backend
+export const customers: Customer[] = [];
 
-export const getBookingsByCustomerId = (customerId: string): Booking[] => {
-  const customer = customers.find(c => c.id === customerId);
-  if (!customer) return [];
-
-  const bookings: Booking[] = [];
-  
-  for (let i = 0; i < customer.totalBookings; i++) {
-    const randomMedia = mediaLocations[Math.floor(Math.random() * mediaLocations.length)];
-    const status = i === 0 ? 'Active' : (i < 3 ? 'Upcoming' : 'Completed');
-    
-    // Calculate Amount
-    const amount = randomMedia.pricePerMonth * 3;
-
-    // Determine Payment Status & Amount Paid
-    let paymentStatus: PaymentStatus;
-    let amountPaid: number;
-    let paymentMode: PaymentMode | undefined;
-    const modes: PaymentMode[] = ['Cash', 'Cheque', 'Online', 'Bank Transfer'];
-
-    if (status === 'Completed') {
-      paymentStatus = 'Paid';
-      amountPaid = amount;
-      paymentMode = modes[Math.floor(Math.random() * modes.length)];
-    } else {
-      // Randomly assign payment status for Active/Upcoming
-      const rand = Math.random();
-      if (rand > 0.6) {
-        paymentStatus = 'Paid';
-        amountPaid = amount;
-        paymentMode = modes[Math.floor(Math.random() * modes.length)];
-      } else if (rand > 0.3) {
-        paymentStatus = 'Partially Paid';
-        amountPaid = Math.floor(amount * (Math.random() * 0.5 + 0.2)); // 20% to 70% paid
-        paymentMode = modes[Math.floor(Math.random() * modes.length)];
-      } else {
-        paymentStatus = 'Pending';
-        amountPaid = 0;
-        paymentMode = undefined;
-      }
-    }
-
-    bookings.push({
-      id: `BK-${customerId.split('-')[1]}-${String(i + 1).padStart(3, '0')}`,
-      mediaId: randomMedia.id,
-      customerId: customerId,
-      media: randomMedia,
-      status: status,
-      startDate: status === 'Completed' ? '2023-01-01' : '2024-04-01',
-      endDate: status === 'Completed' ? '2023-03-01' : '2024-06-01',
-      amount: amount,
-      amountPaid: amountPaid,
-      paymentStatus: paymentStatus,
-      paymentMode: paymentMode,
-    });
-  }
-  
-  return bookings;
+export const getBookingsByCustomerId = (_customerId: string): Booking[] => {
+  // Will be populated from backend
+  return [];
 };
 
-// Export ALL bookings by flattening the results from all customers
-export const bookings = customers.flatMap(c => getBookingsByCustomerId(c.id));
+// Empty bookings array - data from backend
+export const bookings: Booking[] = [];
 
 export const getCustomerById = (id: string) => {
   return customers.find(c => c.id === id);
 };
 
 export const getPaymentStats = () => {
-  let totalRevenue = 0; // Total collected
-  let pendingDues = 0;  // Total remaining to be collected
+  let totalRevenue = 0;
+  let pendingDues = 0;
   let partialCount = 0;
   let pendingCount = 0;
   let paidCount = 0;
@@ -411,111 +199,15 @@ export const getPaymentStats = () => {
   };
 };
 
-// --- COMPLIANCE DATA GENERATOR ---
+// Empty tenders - data from backend
+export const tenders: TenderAgreement[] = [];
 
-// Helper to manipulate dates
-const addDays = (days: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-};
-
-const generateTenders = (): TenderAgreement[] => {
-  const tenders: TenderAgreement[] = [];
-  let idCounter = 1;
-  const frequencies: TaxFrequency[] = ['Quarterly', 'Half-Yearly', 'Yearly'];
-  const specificAreas = ['Market Yard', 'Civil Lines', 'Highway Junction', 'City Center', 'Industrial Estate'];
-
-  // Generate a tender for each district
-  Object.keys(districts).forEach(state => {
-    districts[state].forEach(district => {
-      // Create 1-2 tenders per district for different areas
-      const numTenders = Math.random() > 0.5 ? 2 : 1;
-      
-      for(let i=0; i<numTenders; i++) {
-        const isExpiring = Math.random() > 0.85; // 15% chance of expiring soon
-        
-        let endDate = addDays(365); 
-        let status: 'Active' | 'Expiring Soon' | 'Expired' = 'Active';
-
-        if (isExpiring) {
-          endDate = addDays(20); // ALERT: Expiring in < 30 days
-          status = 'Expiring Soon';
-        }
-
-        tenders.push({
-        id: `TND-${String(idCounter++).padStart(3, '0')}`,
-        // Added tenderName to satisfy the interface requirements
-        tenderName: `${district} ${specificAreas[Math.floor(Math.random() * specificAreas.length)]} Agreement`,
-        tenderNumber: `TN-${district.substring(0, 3).toUpperCase()}-${new Date().getFullYear()}-${String(i + 1).padStart(3, '0')}`,
-        district: district,
-        area: specificAreas[Math.floor(Math.random() * specificAreas.length)],
-        mediaIds: [],
-        startDate: addDays(-200),
-        endDate: endDate,
-        taxFrequency: frequencies[Math.floor(Math.random() * frequencies.length)],
-        licenseFee: Math.floor(Math.random() * 500000) + 100000,
-        status: status as any, // Cast to 'any' or 'TenderStatus' to avoid string literal mismatch
-        documentUrl: '#', // Changed from empty string to a standard mock anchor
-        deleted: false // Crucial for central recycle bin compatibility
-      });
-      }
-    });
-  });
-  return tenders;
-};
-
-export const tenders = generateTenders();
-
-const generateTaxRecords = (): TaxRecord[] => {
-  const records: TaxRecord[] = [];
-  let idCounter = 1;
-
-  tenders.forEach(tender => {
-    // Generate 1-2 tax records per tender
-    const numRecords = 2;
-    
-    for(let i=0; i<numRecords; i++) {
-      const rand = Math.random();
-      let status: 'Paid' | 'Pending' | 'Overdue';
-      let dueDate: string;
-
-      if (rand > 0.6) {
-        status = 'Paid';
-        dueDate = addDays(-30 - (i * 90)); // Past date
-      } else if (rand > 0.3) {
-        status = 'Pending';
-        dueDate = addDays(15); // Future date
-      } else {
-        status = 'Overdue';
-        dueDate = addDays(-5); // Past date but not paid
-      }
-
-      records.push({
-        id: `TX-${String(idCounter++).padStart(4, '0')}`,
-        tenderId: tender.id,
-        tenderNumber: tender.tenderNumber,
-        district: tender.district,
-        area: tender.area,
-        agreementStatus: tender.status, // Link to parent status
-        dueDate: dueDate,
-        amount: Math.floor(tender.licenseFee / 4),
-        status: status,
-        paymentDate: status === 'Paid' ? addDays(-35) : undefined,
-        receiptUrl: status === 'Paid' ? '#' : undefined
-      });
-    }
-  });
-
-  return records;
-};
-
-export const taxRecords = generateTaxRecords();
+// Empty tax records - data from backend
+export const taxRecords: TaxRecord[] = [];
 
 export const getComplianceStats = (): ComplianceStats => {
   const today = new Date();
   
-  // 1. Check Tenders Expiring in <= 30 Days
   const expiringTenders = tenders.filter(t => {
     if (t.status === 'Expired') return false;
     const endDate = new Date(t.endDate);
@@ -524,7 +216,6 @@ export const getComplianceStats = (): ComplianceStats => {
     return diffDays >= 0 && diffDays <= 30;
   }).length;
 
-  // 2. Count Taxes
   const pendingTaxes = taxRecords.filter(t => t.status === 'Pending').length;
   const overdueTaxes = taxRecords.filter(t => t.status === 'Overdue').length;
 
@@ -534,6 +225,6 @@ export const getComplianceStats = (): ComplianceStats => {
     overdueTaxes,
     totalActiveTenders: tenders.filter(t => t.status === 'Active').length,
     totalTaxLiability: taxRecords.filter(t => t.status !== 'Paid').reduce((sum, t) => sum + t.amount, 0),
-    totalTaxPaid: taxRecords.filter(t => t.status === 'Paid').reduce((sum, t) => sum + t.amount, 0) // New Calculation
+    totalTaxPaid: taxRecords.filter(t => t.status === 'Paid').reduce((sum, t) => sum + t.amount, 0)
   };
 };

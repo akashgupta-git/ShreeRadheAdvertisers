@@ -3,8 +3,12 @@ import { MediaCard } from "@/components/public/MediaCard";
 import { FilterPanel } from "@/components/public/FilterPanel";
 import { mediaLocations } from "@/lib/data";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Grid, List, SlidersHorizontal, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { usePublicMedia } from "@/hooks/api/useMedia";
+import { isBackendConfigured } from "@/lib/api/config";
+import { adaptMediaLocation } from "@/lib/services/dataService";
 
 const Explore = () => {
   const [filters, setFilters] = useState({
@@ -16,7 +20,22 @@ const Explore = () => {
   });
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+  // Fetch from API if backend is configured
+  const { data: apiData, isLoading } = usePublicMedia({
+    state: filters.state || undefined,
+    district: filters.district || undefined,
+    type: filters.type as any || undefined,
+    status: filters.status as any || undefined,
+    search: filters.search || undefined,
+  });
+
+  // Use API data if available, otherwise use static data
   const filteredMedia = useMemo(() => {
+    if (isBackendConfigured() && apiData?.data) {
+      return apiData.data.map(m => adaptMediaLocation(m));
+    }
+    
+    // Fallback to static data with client-side filtering
     return mediaLocations.filter(media => {
       const matchesSearch = filters.search === '' ||
         media.name.toLowerCase().includes(filters.search.toLowerCase()) ||
@@ -30,7 +49,9 @@ const Explore = () => {
 
       return matchesSearch && matchesState && matchesDistrict && matchesType && matchesStatus;
     });
-  }, [filters]);
+  }, [filters, apiData]);
+
+  const totalCount = apiData?.pagination?.total ?? mediaLocations.length;
 
   return (
     <div className="pt-20 pb-16">
@@ -39,7 +60,7 @@ const Explore = () => {
         <div className="py-8">
           <h1 className="text-3xl md:text-4xl font-bold mb-3">Explore Media Locations</h1>
           <p className="text-muted-foreground">
-            Discover {mediaLocations.length}+ advertising opportunities across India
+            Discover {totalCount}+ advertising opportunities across India
           </p>
         </div>
 
@@ -93,8 +114,18 @@ const Explore = () => {
               </div>
             </div>
 
-            {/* Results Grid */}
-            {filteredMedia.length > 0 ? (
+            {/* Loading State */}
+            {isBackendConfigured() && isLoading ? (
+              <div className={
+                viewMode === 'grid' 
+                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                  : "flex flex-col gap-4"
+              }>
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Skeleton key={i} className="h-72 w-full rounded-xl" />
+                ))}
+              </div>
+            ) : filteredMedia.length > 0 ? (
               <div className={
                 viewMode === 'grid' 
                   ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
@@ -106,7 +137,7 @@ const Explore = () => {
                     className="animate-fade-in"
                     style={{ animationDelay: `${i * 50}ms` }}
                   >
-                    <MediaCard media={media} />
+                    <MediaCard media={media as any} />
                   </div>
                 ))}
               </div>

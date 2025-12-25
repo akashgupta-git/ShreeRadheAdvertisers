@@ -7,7 +7,6 @@ import {
   getDistrictStats, 
   mediaTypes, 
   bookings, 
-  customers, 
   customerGroups,
   mediaLocations,
   states
@@ -15,13 +14,13 @@ import {
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   PieChart, Pie, Cell, RadarChart, Radar, PolarGrid, PolarAngleAxis, 
-  PolarRadiusAxis, AreaChart, Area, Legend, ComposedChart
+  PolarRadiusAxis, Area, Legend, ComposedChart
 } from 'recharts';
 import { 
-  TrendingUp, Award, MapPin, IndianRupee, Users, Zap, Target, 
-  Activity, ArrowUpRight, Briefcase, Gem, LayoutDashboard, 
-  ShieldCheck, Landmark, BarChart3, TrendingDown,
-  Eye, Layers, Globe, AlertTriangle, Clock, Percent, Banknote, Info, ChevronRight, CheckCircle2
+  TrendingUp, MapPin, IndianRupee, Users, Zap, 
+  Activity, ArrowUpRight, LayoutDashboard, 
+  ShieldCheck, BarChart3, TrendingDown,
+  Globe, AlertTriangle, Clock, Banknote, Info, ChevronRight, CheckCircle2, Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -31,6 +30,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+
+import { 
+  useCityLossData, 
+  useVacantSites, 
+  useRevenueTrend, 
+  useStateRevenue,
+} from "@/hooks/api/useAnalytics";
 
 const Analytics = () => {
   const { cityData, monthlyData } = getChartData();
@@ -45,26 +51,36 @@ const Analytics = () => {
     selectedCity?: string;
   }>({ open: false, title: '', type: null });
 
-  // --- 1. ENHANCED CALCULATIONS ---
+  // API Hooks - fetch from backend if configured
+  const { data: apiCityLoss } = useCityLossData();
+  const { data: apiVacantSites, isLoading: vacantSitesLoading } = useVacantSites(drillDown.selectedCity || null);
+  const { data: apiStateRevenue } = useStateRevenue();
+  const { data: apiRevenueTrend } = useRevenueTrend();
+
+  // --- 1. ENHANCED CALCULATIONS (with API fallback) ---
   const analyticsData = useMemo(() => {
-    const lastThreeMonths = monthlyData.slice(-3);
-    const avgGrowth = (lastThreeMonths[2].revenue / lastThreeMonths[0].revenue) - 1;
-    const baseRevenue = lastThreeMonths[2].revenue;
+    // Use API data if available, otherwise use static data
+    const sourceMonthlyData = apiRevenueTrend || monthlyData;
+    
+    const lastThreeMonths = sourceMonthlyData.slice(-3);
+    const avgGrowth = lastThreeMonths.length >= 3 
+      ? (lastThreeMonths[2].revenue / lastThreeMonths[0].revenue) - 1 
+      : 0.1;
+    const baseRevenue = lastThreeMonths.length > 0 ? lastThreeMonths[lastThreeMonths.length - 1].revenue : 400;
     const forecast = [
-      ...monthlyData.map(d => ({ ...d, type: 'actual', target: Math.round(d.revenue * 1.15) })),
+      ...sourceMonthlyData.map((d: any) => ({ ...d, type: 'actual', target: Math.round(d.revenue * 1.15) })),
       { month: 'Jan (F)', revenue: Math.round(baseRevenue * (1 + avgGrowth / 3)), type: 'forecast', target: Math.round(baseRevenue * 1.2) },
       { month: 'Feb (F)', revenue: Math.round(baseRevenue * (1 + avgGrowth / 2)), type: 'forecast', target: Math.round(baseRevenue * 1.25) }
     ];
 
-    const stateRev = states.map(state => {
+    // Use API state revenue or calculate from static data
+    const stateRev = apiStateRevenue || states.map(state => {
       const stateMediaIds = mediaLocations.filter(m => m.state === state).map(m => m.id);
       const rev = bookings.filter(b => stateMediaIds.includes(b.mediaId)).reduce((sum, b) => sum + b.amountPaid, 0);
       return { name: state, value: rev };
     }).sort((a, b) => b.value - a.value);
 
-    const available = mediaLocations.filter(m => m.status === 'Available');
-    
-    // Detailed list for Vacancy logic
+    // Detailed list for Vacancy logic (static data fallback)
     const allVacantSites = mediaLocations
       .filter(m => m.status === 'Available')
       .map(m => ({
@@ -80,14 +96,15 @@ const Analytics = () => {
       { range: '90+ Days', count: allVacantSites.filter(s => s.daysVacant > 90).length, fill: '#ef4444' },
     ];
 
-    const revenueLossByCity = cityData.map(city => {
+    // Use API city loss data or calculate from static data
+    const revenueLossByCity = apiCityLoss || cityData.map(city => {
         const vacant = allVacantSites.filter(m => m.city === city.name);
         const loss = vacant.reduce((sum, m) => sum + m.pricePerMonth, 0);
         return { name: city.name, loss, count: vacant.length };
       }).filter(c => c.loss > 0).sort((a, b) => b.loss - a.loss);
 
     return { forecast, stateRev, aging, allVacantSites, revenueLossByCity };
-  }, [monthlyData, cityData]);
+  }, [monthlyData, cityData, apiCityLoss, apiStateRevenue, apiRevenueTrend]);
 
   const bestCity = cityData[0];
   const bestMediaType = mediaTypes.reduce((best, type) => {
@@ -107,7 +124,7 @@ const Analytics = () => {
     fullMark: 100,
   }));
 
-  const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+  
 
   // --- 2. DYNAMIC MODAL CONTENT ---
   const renderModalContent = () => {
@@ -115,8 +132,19 @@ const Analytics = () => {
 
     // Logic for City Specific Loss Drill-down
     if (drillDown.type === 'cityLoss' || drillDown.type === 'critical') {
+      // Show loading state when fetching from API
+      if (vacantSitesLoading && drillDown.selectedCity) {
+        return (
+          <div className="py-20 text-center">
+            <Loader2 className="h-10 w-10 text-primary mx-auto mb-4 animate-spin" />
+            <p className="text-muted-foreground">Loading vacant sites for {drillDown.selectedCity}...</p>
+          </div>
+        );
+      }
+
+      // Use API data if available for city-specific view, otherwise use static data
       const displayList = drillDown.selectedCity 
-        ? analyticsData.allVacantSites.filter(s => s.city === drillDown.selectedCity)
+        ? (apiVacantSites?.sites || analyticsData.allVacantSites.filter(s => s.city === drillDown.selectedCity))
         : analyticsData.allVacantSites;
 
       return (

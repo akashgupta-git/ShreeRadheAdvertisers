@@ -10,16 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { 
   Search, 
-  CreditCard, 
   AlertCircle, 
-  CheckCircle2, 
   Clock, 
   Download, 
-  ChevronRight,
   Wallet,
   Banknote,
-  Landmark,
-  ScrollText,
   Plus,
   Filter,
   X,
@@ -37,11 +32,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
+import { cn, formatIndianRupee } from "@/lib/utils";
 import { toast } from "sonner";
+import { useRecycleBin } from "@/contexts/RecycleBinContext";
 
 const Payments = () => {
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
+  const { addToRecycleBin } = useRecycleBin();
   
   // Filters
   const [statusFilter, setStatusFilter] = useState<PaymentStatus | 'All'>('All');
@@ -59,11 +56,11 @@ const Payments = () => {
     filter: 'All' 
   });
 
-  // Calculate Stats for Cards
-  // const totalRevenue = bookings.reduce((acc, b) => acc + b.amountPaid, 0);
-  // const pendingDues = bookings.reduce((acc, b) => acc + (b.amount - b.amountPaid), 0);
-  const totalRevenue = bookings.reduce((acc, b) => acc + b.amountPaid, 0).toLocaleString('en-IN');
-  const pendingDues = bookings.reduce((acc, b) => acc + (b.amount - b.amountPaid), 0).toLocaleString('en-IN');
+  // Calculate Stats for Cards with Indian rupee formatting
+  const totalRevenueNum = bookings.reduce((acc, b) => acc + b.amountPaid, 0);
+  const pendingDuesNum = bookings.reduce((acc, b) => acc + (b.amount - b.amountPaid), 0);
+  const totalRevenue = formatIndianRupee(totalRevenueNum);
+  const pendingDues = formatIndianRupee(pendingDuesNum);
   const partialCount = bookings.filter(b => b.paymentStatus === 'Partially Paid').length;
   const overdueCount = bookings.filter(b => b.paymentStatus === 'Pending').length;
 
@@ -118,7 +115,6 @@ const Payments = () => {
     const matchesSearch =
       b.id.toLowerCase().includes(search.toLowerCase()) ||
       b.media?.name.toLowerCase().includes(search.toLowerCase()) ||
-      customer?.name.toLowerCase().includes(search.toLowerCase()) ||
       customer?.company.toLowerCase().includes(search.toLowerCase());
     const matchesGroup = groupFilter === 'All' ? true : customer?.group === groupFilter;
     
@@ -145,20 +141,21 @@ const Payments = () => {
   };
 
   const handleDeletePayment = (id: string) => {
-    // In a real app, this would be a soft delete API call
-    setBookings(prev => prev.filter(b => b.id !== id));
-    toast.success("Payment record moved to Recycle Bin");
-  };
-
-  const getModeIcon = (mode?: PaymentMode) => {
-    switch (mode) {
-      case 'Online': return <CreditCard className="h-4 w-4 text-blue-500" />;
-      case 'Cash': return <Banknote className="h-4 w-4 text-green-600" />;
-      case 'Cheque': return <ScrollText className="h-4 w-4 text-orange-500" />;
-      case 'Bank Transfer': return <Landmark className="h-4 w-4 text-purple-500" />;
-      default: return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
+    const booking = bookings.find(b => b.id === id);
+    if (booking) {
+      const customer = customers.find(c => c.id === booking.customerId);
+      addToRecycleBin({
+        id: booking.id,
+        type: 'payment',
+        displayName: `Payment - ${booking.id}`,
+        subText: `${customer?.company || 'Unknown'} • Contact: ${customer?.name || 'N/A'} • ₹${formatIndianRupee(booking.amount)}`,
+        originalData: booking,
+      });
+      setBookings(prev => prev.filter(b => b.id !== id));
+      toast.success("Payment record moved to Recycle Bin");
     }
   };
+
 
   const hasActiveFilters = groupFilter !== 'All' || dateRange.start || dateRange.end;
 
@@ -213,7 +210,7 @@ const Payments = () => {
              <div className="relative w-full sm:w-64">
                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                <Input
-                 placeholder="Search ID, Client..."
+                 placeholder="Search ID, Company..."
                  className="pl-9"
                  value={search}
                  onChange={(e) => setSearch(e.target.value)}
@@ -298,7 +295,7 @@ const Payments = () => {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead>Booking ID</TableHead>
-                <TableHead>Client</TableHead>
+                 <TableHead>Company</TableHead>
                 <TableHead>Contract Value</TableHead>
                 <TableHead>Payment Progress</TableHead>
                 <TableHead>Status</TableHead>

@@ -2,12 +2,11 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Filter, ArchiveRestore } from "lucide-react"; 
-import { Link, useNavigate } from "react-router-dom"; 
+import { Search, Filter, MapPin } from "lucide-react"; 
+import { useNavigate } from "react-router-dom"; 
 import { MediaTable } from "@/components/admin/MediaTable";
-import { mediaLocations, states, districts, mediaTypes, type MediaLocation } from "@/lib/data";
+import { mediaLocations, mediaTypes, type MediaLocation } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { RecycleBinDialog } from "@/components/admin/RecycleBinDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,37 +19,43 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { PlusCircle, Download } from "lucide-react"; 
+import { useRecycleBin } from "@/contexts/RecycleBinContext";
+import { useLocationData } from "@/contexts/LocationDataContext";
+import { LocationManagementDialog } from "@/components/admin/LocationManagement";
 
 const MediaManagement = () => {
   const navigate = useNavigate();
+  const { addToRecycleBin, getItemsByType } = useRecycleBin();
+  const { activeState, districts } = useLocationData();
+  
   const [searchQuery, setSearchQuery] = useState("");
-  const [stateFilter, setStateFilter] = useState("all");
   const [districtFilter, setDistrictFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   
-  // State for all media items (both active and deleted)
+  // State for all media items
   const [allMedia, setAllMedia] = useState<MediaLocation[]>(mediaLocations);
-  
-  // State for dialogs
-  const [recycleBinOpen, setRecycleBinOpen] = useState(false);
-  
+
   // State for Soft Delete Confirmation
-  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<MediaLocation | null>(null);
 
-  const availableDistricts = stateFilter !== "all" ? districts[stateFilter] || [] : [];
+  // Get deleted media IDs from centralized bin
+  const deletedMediaIds = new Set(getItemsByType('media').map(item => item.id));
 
-  // --- ACTIONS ---
-
-  // 1. Soft Delete (Move to Bin) - Using ISO Date string for accurate countdown
+  // Soft Delete - Move to centralized bin
   const handleSoftDelete = () => {
     if (!itemToDelete) return;
     
-    setAllMedia(prev => prev.map(item => 
-      item.id === itemToDelete 
-        ? { ...item, deleted: true, deletedAt: new Date().toISOString() } 
-        : item
-    ));
+    addToRecycleBin({
+      id: itemToDelete.id,
+      type: 'media',
+      displayName: itemToDelete.name,
+      subText: `${itemToDelete.city}, ${itemToDelete.district}`,
+      originalData: itemToDelete,
+    });
+    
+    setAllMedia(prev => prev.filter(item => item.id !== itemToDelete.id));
     
     toast({ 
       title: "Moved to Recycle Bin", 
@@ -59,45 +64,29 @@ const MediaManagement = () => {
     setItemToDelete(null);
   };
 
-  // 2. Restore (From Bin)
-  const handleRestore = (id: string) => {
-    setAllMedia(prev => prev.map(item => 
-      item.id === id ? { ...item, deleted: false, deletedAt: undefined } : item
-    ));
-  };
-
-  // 3. Permanent Delete
-  const handlePermanentDelete = (id: string) => {
-    setAllMedia(prev => prev.filter(item => item.id !== id));
-  };
-
-  // Filter Logic: Only show items that are NOT deleted
+  // Filter Logic: Exclude items in recycle bin
   const filteredMedia = allMedia.filter((media) => {
-    if (media.deleted) return false; 
+    if (deletedMediaIds.has(media.id)) return false;
 
     const matchesSearch = 
       media.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       media.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
       media.id.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesState = stateFilter === "all" || media.state === stateFilter;
     const matchesDistrict = districtFilter === "all" || media.district === districtFilter;
     const matchesType = typeFilter === "all" || media.type === typeFilter;
     const matchesStatus = statusFilter === "all" || media.status === statusFilter;
 
-    return matchesSearch && matchesState && matchesDistrict && matchesType && matchesStatus;
+    return matchesSearch && matchesDistrict && matchesType && matchesStatus;
   });
 
-  // Get Deleted Items for Bin
-  const deletedMedia = allMedia
-  .filter(m => m.deleted === true)
-  .map(m => ({
-    id: m.id,
-    type: 'media' as const, // explicitly set type for central bin
-    displayName: m.name,
-    subText: `${m.city}, ${m.state}`,
-    deletedAt: m.deletedAt || new Date().toISOString()
-  }));
+  // Handle delete button click - find the media item first
+  const handleDeleteClick = (id: string) => {
+    const media = allMedia.find(m => m.id === id);
+    if (media) {
+      setItemToDelete(media);
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -107,24 +96,13 @@ const MediaManagement = () => {
           <p className="text-muted-foreground">Manage all your outdoor advertising media locations</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={() => setLocationDialogOpen(true)}>
+            <MapPin className="h-4 w-4 mr-2" />
+            Manage Locations
+          </Button>
           <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Export
-          </Button>
-          
-          {/* RECYCLE BIN BUTTON */}
-          <Button 
-            variant="outline" 
-            className="relative"
-            onClick={() => setRecycleBinOpen(true)}
-          >
-            <ArchiveRestore className="h-4 w-4 mr-2" />
-            Recycle Bin
-            {deletedMedia.length > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] text-white">
-                {deletedMedia.length}
-              </span>
-            )}
           </Button>
 
           <Button onClick={() => navigate('/admin/media/new')}>
@@ -142,7 +120,7 @@ const MediaManagement = () => {
           <CardDescription>Refine your media search</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -152,20 +130,12 @@ const MediaManagement = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            
-            <Select value={stateFilter} onValueChange={(val) => { setStateFilter(val); setDistrictFilter("all"); }}>
-              <SelectTrigger className="bg-background/50"><SelectValue placeholder="State" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All States</SelectItem>
-                {states.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
 
-            <Select value={districtFilter} onValueChange={setDistrictFilter} disabled={stateFilter === "all"}>
+            <Select value={districtFilter} onValueChange={setDistrictFilter}>
               <SelectTrigger className="bg-background/50"><SelectValue placeholder="District" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Districts</SelectItem>
-                {availableDistricts.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                <SelectItem value="all">All Districts ({activeState})</SelectItem>
+                {districts.map((d: string) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
               </SelectContent>
             </Select>
 
@@ -194,20 +164,19 @@ const MediaManagement = () => {
         <CardContent className="p-0">
           <MediaTable 
             data={filteredMedia} 
-            // We pass the ID to setItemToDelete to trigger the confirmation dialog
-            onDelete={(id) => setItemToDelete(id)} 
+            onDelete={handleDeleteClick} 
           />
         </CardContent>
       </Card>
 
-      {/* Step 1: Confirmation Dialog for Soft Delete */}
+      {/* Confirmation Dialog for Soft Delete */}
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Move to Recycle Bin?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the media from the active list. 
-              You can restore it later from the Recycle Bin.
+              This will remove "{itemToDelete?.name}" from the active list. 
+              You can restore it within 30 days from the Recycle Bin (accessible from the header).
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -219,13 +188,9 @@ const MediaManagement = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Step 2: Recycle Bin Dialog (Handles Restore & Permanent Delete) */}
-      <RecycleBinDialog 
-        open={recycleBinOpen} 
-        onOpenChange={setRecycleBinOpen}
-        deletedItems={deletedMedia} // Now passing formatted central items
-        onRestore={(id) => handleRestore(id)} // Adapted to ignore the 'type' argument for now
-        onPermanentDelete={(id) => handlePermanentDelete(id)}
+      <LocationManagementDialog 
+        open={locationDialogOpen} 
+        onOpenChange={setLocationDialogOpen} 
       />
     </div>
   );

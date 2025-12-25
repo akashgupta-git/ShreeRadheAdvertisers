@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         return false;
       }
-    } catch (error) {
+    } catch {
       // If verification fails, try to use stored user data
       if (storedUser) {
         try {
@@ -111,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = useCallback(() => {
-    // Optionally call logout endpoint
+    // Call logout endpoint
     apiClient.post(API_ENDPOINTS.AUTH.LOGOUT).catch(() => {
       // Ignore errors on logout
     });

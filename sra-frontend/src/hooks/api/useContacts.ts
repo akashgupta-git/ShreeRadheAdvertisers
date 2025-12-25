@@ -1,8 +1,8 @@
-// API Hooks for Contact Form Submissions
+// API Hooks for Contact Form Submissions with Backend Fallback
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
-import { API_ENDPOINTS } from '@/lib/api/config';
+import { API_ENDPOINTS, isBackendConfigured } from '@/lib/api/config';
 import type {
   ContactSubmission,
   ApiResponse,
@@ -24,6 +24,12 @@ export const contactKeys = {
 export function useSubmitContact() {
   return useMutation({
     mutationFn: async (data: ContactFormRequest) => {
+      if (!isBackendConfigured()) {
+        // Simulate success for demo
+        console.log('Contact form submitted (demo mode):', data);
+        return { success: true, id: 'demo-' + Date.now() };
+      }
+
       const response = await apiClient.post<ApiResponse<{ id: string }>>(
         API_ENDPOINTS.CONTACT.SUBMIT,
         data
@@ -38,6 +44,10 @@ export function useContactSubmissions(filters?: { status?: ContactStatus }) {
   return useQuery({
     queryKey: contactKeys.list(filters),
     queryFn: async () => {
+      if (!isBackendConfigured()) {
+        return { success: true, data: [], total: 0 };
+      }
+
       const response = await apiClient.get<PaginatedResponse<ContactSubmission>>(
         API_ENDPOINTS.CONTACT.LIST,
         filters
@@ -53,12 +63,16 @@ export function useContactById(id: string) {
   return useQuery({
     queryKey: contactKeys.detail(id),
     queryFn: async () => {
+      if (!isBackendConfigured()) {
+        throw new Error('Backend not configured');
+      }
+
       const response = await apiClient.get<ApiResponse<ContactSubmission>>(
         API_ENDPOINTS.CONTACT.GET(id)
       );
       return response.data;
     },
-    enabled: !!id,
+    enabled: !!id && isBackendConfigured(),
   });
 }
 
@@ -68,6 +82,10 @@ export function useUpdateContactStatus() {
 
   return useMutation({
     mutationFn: async ({ id, status, notes }: { id: string; status: ContactStatus; notes?: string }) => {
+      if (!isBackendConfigured()) {
+        throw new Error('Backend not configured. Please set VITE_API_URL.');
+      }
+
       const response = await apiClient.patch<ApiResponse<ContactSubmission>>(
         API_ENDPOINTS.CONTACT.UPDATE_STATUS(id),
         { status, notes }

@@ -5,7 +5,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -20,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, RefreshCw, X, Clock } from "lucide-react";
+import { Trash2, RefreshCw, X, Clock, AlertTriangle } from "lucide-react";
 import { CentralBinItem } from "@/lib/api/types";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,6 +29,8 @@ interface RecycleBinDialogProps {
   deletedItems: CentralBinItem[];
   onRestore: (id: string, type: CentralBinItem['type']) => void;
   onPermanentDelete: (id: string, type: CentralBinItem['type']) => void;
+  onRestoreAll?: () => void;
+  onDeleteAll?: () => void;
 }
 
 export function RecycleBinDialog({
@@ -38,13 +39,29 @@ export function RecycleBinDialog({
   deletedItems,
   onRestore,
   onPermanentDelete,
+  onRestoreAll,
+  onDeleteAll,
 }: RecycleBinDialogProps) {
-  const [confirmAction, setConfirmAction] = useState<{ id: string; type: CentralBinItem['type']; mode: 'restore' | 'delete' } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ 
+    id: string; 
+    type: CentralBinItem['type']; 
+    mode: 'restore' | 'delete' 
+  } | null>(null);
+  const [bulkConfirm, setBulkConfirm] = useState<'restore-all' | 'delete-all' | null>(null);
 
   const getDaysRemaining = (deletedAt: string) => {
     const diff = new Date().getTime() - new Date(deletedAt).getTime();
     const daysLeft = 30 - Math.floor(diff / (1000 * 3600 * 24));
     return daysLeft > 0 ? daysLeft : 0;
+  };
+
+  const handleBulkConfirm = () => {
+    if (bulkConfirm === 'restore-all' && onRestoreAll) {
+      onRestoreAll();
+    } else if (bulkConfirm === 'delete-all' && onDeleteAll) {
+      onDeleteAll();
+    }
+    setBulkConfirm(null);
   };
 
   return (
@@ -60,6 +77,30 @@ export function RecycleBinDialog({
             </div>
             <DialogDescription>Restore items or delete them permanently across all modules.</DialogDescription>
           </DialogHeader>
+
+          {/* Bulk Actions */}
+          {deletedItems.length > 0 && (
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-green-600 border-green-200 hover:bg-green-50"
+                onClick={() => setBulkConfirm('restore-all')}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Restore All ({deletedItems.length})
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={() => setBulkConfirm('delete-all')}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete All Permanently
+              </Button>
+            </div>
+          )}
 
           <ScrollArea className="flex-1 border rounded-md mt-4">
             <Table>
@@ -105,6 +146,7 @@ export function RecycleBinDialog({
         </DialogContent>
       </Dialog>
 
+      {/* Single Item Confirm */}
       <AlertDialog open={!!confirmAction} onOpenChange={() => setConfirmAction(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -122,6 +164,32 @@ export function RecycleBinDialog({
               className={confirmAction?.mode === 'delete' ? "bg-destructive" : "bg-primary"}
             >
               Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Action Confirm */}
+      <AlertDialog open={!!bulkConfirm} onOpenChange={() => setBulkConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className={bulkConfirm === 'delete-all' ? "h-5 w-5 text-destructive" : "h-5 w-5 text-green-600"} />
+              {bulkConfirm === 'restore-all' ? "Restore All Items?" : "Delete All Permanently?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkConfirm === 'restore-all' 
+                ? `This will restore all ${deletedItems.length} items back to their original locations.` 
+                : `This will permanently delete all ${deletedItems.length} items. This action cannot be undone.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleBulkConfirm}
+              className={bulkConfirm === 'delete-all' ? "bg-destructive hover:bg-destructive/90" : "bg-green-600 hover:bg-green-700"}
+            >
+              {bulkConfirm === 'restore-all' ? "Restore All" : "Delete All"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

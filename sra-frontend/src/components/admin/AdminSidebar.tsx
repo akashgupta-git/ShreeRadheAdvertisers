@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, MapPin, PlusCircle, Calendar, BarChart3, 
   Clock, Users, FileText, CreditCard, ChevronLeft, 
-  ChevronRight, ExternalLink, Trash2 
+  ChevronRight, LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -17,6 +17,7 @@ import {
   SidebarRail,
   useSidebar
 } from "@/components/ui/sidebar";
+import { useAuth } from "@/contexts/AuthContext";
 import logo from "@/assets/logo.png";
 
 const navItems = [
@@ -29,14 +30,20 @@ const navItems = [
   { icon: Calendar, label: 'Availability', path: '/admin/availability' },
   { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
   { icon: FileText, label: 'Reports', path: '/admin/reports' },
-  { icon: Clock, label: 'Coming Soon', path: '/admin/maintenance' },
+  { icon: Clock, label: 'Maintenance', path: '/admin/maintenance' },
 ];
 
 export function AdminSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const { state, toggleSidebar } = useSidebar();
   const collapsed = state === "collapsed";
+
+  const handleLogout = () => {
+    logout();
+    navigate('/admin/login');
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
@@ -47,7 +54,7 @@ export function AdminSidebar() {
               <MapPin className="h-5 w-5" />
             </div>
           ) : (
-            <img src={logo} alt="Shree Radhe" className="h-10 w-auto" />
+            <img src={logo} alt="Shree Radhe" className="h-14 w-auto" />
           )}
         </div>
       </SidebarHeader>
@@ -88,21 +95,10 @@ export function AdminSidebar() {
                 "w-full gap-3 h-auto py-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10",
                 collapsed && "justify-center"
               )}
-              tooltip="Recycle Bin"
-            >
-              <Trash2 className="h-5 w-5 shrink-0" />
-              {!collapsed && <span>Recycle Bin</span>}
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-
-          <SidebarMenuItem>
-            <SidebarMenuButton 
-              variant="outline" 
-              className={cn("w-full gap-3 h-auto py-2.5", collapsed && "justify-center")}
-              onClick={() => navigate('/')}
               tooltip="Logout"
+              onClick={handleLogout}
             >
-              <ExternalLink className="h-5 w-5 shrink-0" />
+              <LogOut className="h-5 w-5 shrink-0" />
               {!collapsed && <span>Logout</span>}
             </SidebarMenuButton>
           </SidebarMenuItem>
