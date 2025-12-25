@@ -60,8 +60,10 @@ const Payments = () => {
   });
 
   // Calculate Stats for Cards
-  const totalRevenue = bookings.reduce((acc, b) => acc + b.amountPaid, 0);
-  const pendingDues = bookings.reduce((acc, b) => acc + (b.amount - b.amountPaid), 0);
+  // const totalRevenue = bookings.reduce((acc, b) => acc + b.amountPaid, 0);
+  // const pendingDues = bookings.reduce((acc, b) => acc + (b.amount - b.amountPaid), 0);
+  const totalRevenue = bookings.reduce((acc, b) => acc + b.amountPaid, 0).toLocaleString('en-IN');
+  const pendingDues = bookings.reduce((acc, b) => acc + (b.amount - b.amountPaid), 0).toLocaleString('en-IN');
   const partialCount = bookings.filter(b => b.paymentStatus === 'Partially Paid').length;
   const overdueCount = bookings.filter(b => b.paymentStatus === 'Pending').length;
 
@@ -326,10 +328,10 @@ const Payments = () => {
                         <Badge variant="outline" className="text-[10px]">{customer?.group}</Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium">₹{booking.amount.toLocaleString()}</div>
+                        <div className="font-medium">₹{booking.amount.toLocaleString('en-IN')}</div>
                         <div className="text-xs text-muted-foreground">
                           Due: <span className={booking.amount - booking.amountPaid > 0 ? "text-destructive" : "text-success"}>
-                            ₹{(booking.amount - booking.amountPaid).toLocaleString()}
+                            ₹{(booking.amount - booking.amountPaid).toLocaleString('en-IN')}
                           </span>
                         </div>
                       </TableCell>

@@ -81,7 +81,7 @@ export function RecordPaymentDialog({ booking, open, onOpenChange, onPaymentReco
     }
 
     onPaymentRecorded(booking.id, newTotalPaid, newStatus, paymentMode);
-    toast.success(`Payment of ₹${payAmount.toLocaleString()} recorded successfully.`);
+    toast.success(`Payment of ₹${payAmount.toLocaleString('en-IN')} recorded successfully.`);
     onOpenChange(false);
   };
 
@@ -99,16 +99,16 @@ export function RecordPaymentDialog({ booking, open, onOpenChange, onPaymentReco
           <div className="bg-muted/40 p-4 rounded-lg space-y-3 border">
              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total Contract Value:</span>
-                <span className="font-medium">₹{totalAmount.toLocaleString()}</span>
+                <span className="font-medium">₹{totalAmount.toLocaleString('en-IN')}</span>
              </div>
              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Already Paid:</span>
-                <span className="font-medium text-success">₹{currentPaid.toLocaleString()}</span>
+                <span className="font-medium text-success">₹{currentPaid.toLocaleString('en-IN')}</span>
              </div>
              <div className="h-px bg-border my-2" />
              <div className="flex justify-between font-semibold">
                 <span>Outstanding Balance:</span>
-                <span className="text-destructive">₹{balance.toLocaleString()}</span>
+                <span className="text-destructive">₹{balance.toLocaleString('en-IN')}</span>
              </div>
           </div>
 

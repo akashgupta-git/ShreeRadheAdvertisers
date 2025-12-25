@@ -415,7 +415,7 @@ const Documents = () => {
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{(stats.totalTaxLiability / 1000).toFixed(1)}k</div>
+            <div className="text-2xl font-bold">₹{stats.totalTaxLiability.toLocaleString('en-IN')}</div>
             <p className="text-xs text-muted-foreground mt-1">Pending + Overdue</p>
           </CardContent>
         </Card>
@@ -426,7 +426,7 @@ const Documents = () => {
             <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{(stats.totalTaxPaid / 1000).toFixed(1)}k</div>
+            <div className="text-2xl font-bold">₹{(stats.totalTaxPaid.toLocaleString('en-IN'))}</div>
             <p className="text-xs text-muted-foreground mt-1">Lifetime collected</p>
           </CardContent>
         </Card>
