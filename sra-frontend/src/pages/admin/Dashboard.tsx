@@ -34,6 +34,7 @@ import {
   PieChart, Pie, Cell, LineChart, Line, Legend 
 } from 'recharts';
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner"; // Added toast import
 
 const Dashboard = () => {
   const navigate = useNavigate(); 
@@ -42,7 +43,10 @@ const Dashboard = () => {
   const complianceStats = getComplianceStats();
   const { cityData, statusData, monthlyData } = getChartData();
   
+  // State for Managing Bookings/Payments
   const [allBookings, setAllBookings] = useState<Booking[]>(initialBookings);
+  
+  // State for Payment Dialog
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [paymentFilter, setPaymentFilter] = useState<'All' | 'Pending' | 'Partially Paid' | 'Paid'>('All');
 
@@ -58,6 +62,13 @@ const Dashboard = () => {
 
   const handleUpdateBooking = (updated: Booking) => {
     setAllBookings(prev => prev.map(b => b.id === updated.id ? updated : b));
+    toast.success(`Booking ${updated.id} payment updated`); // Added toast notification
+  };
+
+  // Handler to resolve the 'onDeleteBooking' missing prop error
+  const handleDeleteBooking = (id: string) => {
+    setAllBookings(prev => prev.filter(b => b.id !== id));
+    toast.error(`Payment record for ${id} has been removed`); // Added toast notification
   };
 
   const openPaymentDetails = (filter: 'All' | 'Pending' | 'Partially Paid' | 'Paid') => {
@@ -297,12 +308,14 @@ const Dashboard = () => {
         </div>
       </Card>
 
+      {/* Payment Details Dialog updated with handlers */}
       <PaymentListDialog 
         open={isPaymentOpen}
         onOpenChange={setIsPaymentOpen}
         bookings={allBookings}
         initialFilter={paymentFilter}
         onUpdateBooking={handleUpdateBooking}
+        onDeleteBooking={handleDeleteBooking}
       />
     </div>
   );
