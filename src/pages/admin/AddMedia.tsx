@@ -94,7 +94,7 @@ const AddMedia = () => {
       if (isBackendConfigured()) {
       await createMedia.mutateAsync({
         // CRITICAL FIX: Send the custom ID as 'id' to match MongoDB index
-        id: formData.id, 
+        id: formData.id,
         name: formData.name,
         type: formData.type as any,
         state: formData.state,

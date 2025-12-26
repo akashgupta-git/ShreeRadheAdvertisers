@@ -112,10 +112,10 @@ router.post('/', authMiddleware, async (req, res) => {
   try {
     const media = new Media(req.body);
     await media.save();
-    res.status(201).json(media);
+    res.status(201).json({ success: true, data: media }); // Wrap in success/data
   } catch (error) {
     console.error('Create media error:', error);
-    res.status(500).json({ message: 'Failed to create media' });
+    res.status(500).json({ success: false, message: 'Failed to create media' });
   }
 });
 
@@ -124,11 +124,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const media = await Media.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!media) {
-      return res.status(404).json({ message: 'Media not found' });
+      return res.status(404).json({ success: false, message: 'Media not found' });
     }
-    res.json(media);
+    res.json({ success: true, data: media }); // Wrap in success/data
   } catch (error) {
-    res.status(500).json({ message: 'Failed to update media' });
+    res.status(500).json({ success: false, message: 'Failed to update media' });
   }
 });
 

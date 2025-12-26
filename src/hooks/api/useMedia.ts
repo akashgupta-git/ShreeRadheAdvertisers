@@ -141,21 +141,22 @@ export function useCreateMedia() {
   return useMutation({
     mutationFn: async (data: CreateMediaRequest) => {
       if (!isBackendConfigured()) {
-        throw new Error('Backend not configured. Please set VITE_API_URL.');
+        throw new Error('Backend not configured.');
       }
 
+      // Ensure we send the data as-is to the backend
       const response = await apiClient.post<ApiResponse<MediaLocation>>(
         API_ENDPOINTS.MEDIA.CREATE,
         data
       );
-      return response.data;
+      
+      return response.data || response; 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: mediaKeys.lists() });
     },
   });
 }
-
 // Update media
 export function useUpdateMedia() {
   const queryClient = useQueryClient();
@@ -163,14 +164,14 @@ export function useUpdateMedia() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateMediaRequest }) => {
       if (!isBackendConfigured()) {
-        throw new Error('Backend not configured. Please set VITE_API_URL.');
+        throw new Error('Backend not configured.');
       }
 
-      const response = await apiClient.put<ApiResponse<MediaLocation>>(
+      const response = await apiClient.put<MediaLocation>(
         API_ENDPOINTS.MEDIA.UPDATE(id),
         data
       );
-      return response.data;
+      return response;
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: mediaKeys.lists() });
