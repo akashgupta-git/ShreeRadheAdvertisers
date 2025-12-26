@@ -52,7 +52,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 // Update contact status (protected)
-router.patch('/:id/status', authMiddleware, async (req, res) => {
+router.put('/:id/status', authMiddleware, async (req, res) => {
   try {
     const { status, notes } = req.body;
     const contact = await Contact.findByIdAndUpdate(
