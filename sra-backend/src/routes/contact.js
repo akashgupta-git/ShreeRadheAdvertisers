@@ -4,7 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { Contact } = require('../models');
+const Contact = require('../models/Contact');
 const { authMiddleware } = require('../middleware/auth');
 
 // Submit contact form (public)
