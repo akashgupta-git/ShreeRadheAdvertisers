@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, MapPin, PlusCircle, Calendar, BarChart3, 
   Clock, Users, FileText, CreditCard, ChevronLeft, 
-  ChevronRight, LogOut
+  ChevronRight, LogOut, MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -23,6 +23,7 @@ import logo from "@/assets/logo.png";
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
   { icon: MapPin, label: 'Media Management', path: '/admin/media' },
+  { icon: MessageSquare, label: 'Inquiries', path: '/admin/inquiries' },
   { icon: PlusCircle, label: 'Add Media', path: '/admin/media/new' },
   { icon: FileText, label: 'Documents', path: '/admin/documents' },
   { icon: Users, label: 'Customer Bookings', path: '/admin/bookings' },

@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PublicLayout } from "@/layouts/PublicLayout";
 import { AdminLayout } from "@/layouts/AdminLayout";
 
+
 // Public Pages
 import Index from "./pages/Index";
 import Explore from "./pages/Explore";
@@ -19,6 +20,7 @@ import About from "./pages/About";
 // Admin Pages
 import Login from "./pages/admin/Login";
 import Dashboard from "./pages/admin/Dashboard";
+import Inquiries from "./pages/admin/Inquiries";
 import MediaManagement from "./pages/admin/MediaManagement";
 import AdminMediaDetail from "./pages/admin/AdminMediaDetail";
 import AddMedia from "./pages/admin/AddMedia";
@@ -69,6 +71,7 @@ const App = () => (
               }
             >
               <Route index element={<Dashboard />} />
+              <Route path="inquiries" element={<Inquiries />} />
               <Route path="media" element={<MediaManagement />} />
               <Route path="media/new" element={<AddMedia />} />
               <Route path="media/:id" element={<AdminMediaDetail />} />

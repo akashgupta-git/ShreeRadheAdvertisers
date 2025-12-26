@@ -4,20 +4,33 @@
 
 const express = require('express');
 const router = express.Router();
-const { Media, Booking, Customer } = require('../models');
+const { Media, Booking, Customer, Contact } = require('../models'); // Updated to include Contact
 const { authMiddleware } = require('../middleware/auth');
 
 // Dashboard Stats
 router.get('/dashboard', authMiddleware, async (req, res) => {
   try {
-    const [totalMedia, availableMedia, bookedMedia, comingSoon, maintenance, totalCustomers, activeBookings] = await Promise.all([
+    // Added totalInquiries and newInquiries to the parallel database calls
+    const [
+      totalMedia, 
+      availableMedia, 
+      bookedMedia, 
+      comingSoon, 
+      maintenance, 
+      totalCustomers, 
+      activeBookings,
+      totalInquiries,
+      newInquiries
+    ] = await Promise.all([
       Media.countDocuments({ deleted: false }),
       Media.countDocuments({ deleted: false, status: 'Available' }),
       Media.countDocuments({ deleted: false, status: 'Booked' }),
       Media.countDocuments({ deleted: false, status: 'Coming Soon' }),
       Media.countDocuments({ deleted: false, status: 'Maintenance' }),
       Customer.countDocuments({ deleted: false }),
-      Booking.countDocuments({ deleted: false, status: { $in: ['Active', 'Upcoming'] } })
+      Booking.countDocuments({ deleted: false, status: { $in: ['Active', 'Upcoming'] } }),
+      Contact.countDocuments({}), // Total inquiries
+      Contact.countDocuments({ status: 'New' }) // Count specifically 'New' leads
     ]);
 
     const statesCount = await Media.distinct('state', { deleted: false });
@@ -41,7 +54,9 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
       totalCustomers,
       activeBookings,
       totalRevenue: revenue.totalRevenue,
-      pendingPayments: revenue.pendingPayments
+      pendingPayments: revenue.pendingPayments,
+      totalInquiries, // Added to response
+      newInquiries   // Added to response
     });
   } catch (error) {
     console.error('Dashboard analytics error:', error);
