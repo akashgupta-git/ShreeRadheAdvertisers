@@ -4,17 +4,22 @@
 
 const express = require('express');
 const router = express.Router();
-const Contact = require('../models/Contact');
+const { Contact } = require('../models');
 const { authMiddleware } = require('../middleware/auth');
 
 // Submit contact form (public)
 router.post('/', async (req, res) => {
   try {
+    console.log("Data received from frontend:", req.body); // Check what's arriving
     const contact = new Contact(req.body);
     await contact.save();
     res.status(201).json(contact);
   } catch (error) {
-    res.status(500).json({ message: 'Failed to submit contact form' });
+    console.error("DETAILED SUBMISSION ERROR:", error); // This shows in Render Logs
+    res.status(500).json({ 
+      message: 'Failed to submit contact form',
+      error: error.message // Sends error back to frontend for debugging
+    });
   }
 });
 
@@ -52,7 +57,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 // Update contact status (protected)
-router.put('/:id/status', authMiddleware, async (req, res) => {
+router.patch('/:id/status', authMiddleware, async (req, res) => {
   try {
     const { status, notes } = req.body;
     const contact = await Contact.findByIdAndUpdate(
