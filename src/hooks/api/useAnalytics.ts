@@ -1,20 +1,39 @@
 // API Hooks for Analytics & Dashboard Data with Backend Fallback
-
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS, isBackendConfigured } from '@/lib/api/config';
 import { 
-  getDashboardStats, 
+  getDashboardStats as getMockDashboardStats, 
   getChartData, 
   getPaymentStats,
   getComplianceStats 
 } from '@/lib/data';
 import type {
-  DashboardStats,
   RevenueData,
   OccupancyData,
   ApiResponse,
 } from '@/lib/api/types';
+
+/**
+ * DASHBOARD INTERFACE
+ * Matches the live response from sra-backend/src/routes/analytics.js
+ */
+export interface DashboardStats {
+  totalMedia: number;
+  available: number;
+  booked: number;
+  comingSoon: number;
+  maintenance: number;
+  statesCount: number;
+  districtsCount: number;
+  totalCustomers: number;
+  activeBookings: number;
+  totalRevenue: number;
+  pendingPayments: number;
+  // Live leads data from your Inquiry Management update
+  totalInquiries: number; 
+  newInquiries: number;   
+}
 
 // Types for analytics data
 export interface CityLossData {
@@ -70,25 +89,29 @@ export const analyticsKeys = {
   compliance: () => [...analyticsKeys.all, 'compliance'] as const,
 };
 
-// Fetch dashboard stats
+// --- HOOKS ---
+
+// 1. Fetch live dashboard stats (including Leads/Inquiries)
 export function useDashboardStats() {
   return useQuery({
     queryKey: analyticsKeys.dashboard(),
     queryFn: async () => {
       if (!isBackendConfigured()) {
-        return getDashboardStats();
+        // Fallback to mock data and cast to our interface
+        return getMockDashboardStats() as unknown as DashboardStats;
       }
 
-      const response = await apiClient.get<ApiResponse<DashboardStats>>(
+      const response = await apiClient.get<DashboardStats>(
         API_ENDPOINTS.ANALYTICS.DASHBOARD
       );
-      return response.data;
+      // Backend returns the object directly or wrapped in ApiResponse based on your client setup
+      return response as unknown as DashboardStats;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
-// Chart data (city, status, monthly)
+// 2. Chart data (city, status, monthly)
 export function useChartData() {
   return useQuery({
     queryKey: analyticsKeys.charts(),
@@ -106,7 +129,7 @@ export function useChartData() {
   });
 }
 
-// Payment stats for analytics
+// 3. Payment stats for analytics
 export function usePaymentStatsAnalytics() {
   return useQuery({
     queryKey: analyticsKeys.paymentStats(),
@@ -124,7 +147,7 @@ export function usePaymentStatsAnalytics() {
   });
 }
 
-// Compliance stats
+// 4. Compliance stats (Tenders/Taxes)
 export function useComplianceStats() {
   return useQuery({
     queryKey: analyticsKeys.compliance(),
@@ -142,7 +165,7 @@ export function useComplianceStats() {
   });
 }
 
-// Fetch revenue data
+// 5. Fetch revenue data
 export function useRevenueData(period: 'monthly' | 'quarterly' | 'yearly' = 'monthly') {
   return useQuery({
     queryKey: analyticsKeys.revenue(period),
@@ -161,7 +184,7 @@ export function useRevenueData(period: 'monthly' | 'quarterly' | 'yearly' = 'mon
   });
 }
 
-// Fetch occupancy data
+// 6. Fetch occupancy data (Live billboard booking rates)
 export function useOccupancyData() {
   return useQuery({
     queryKey: analyticsKeys.occupancy(),
@@ -170,16 +193,16 @@ export function useOccupancyData() {
         return [] as OccupancyData[];
       }
 
-      const response = await apiClient.get<ApiResponse<OccupancyData[]>>(
+      const response = await apiClient.get<OccupancyData[]>(
         API_ENDPOINTS.ANALYTICS.OCCUPANCY
       );
-      return response.data;
+      return response as unknown as OccupancyData[];
     },
     staleTime: 10 * 60 * 1000,
   });
 }
 
-// Fetch trends data
+// 7. Fetch trends data (Growth rates)
 export function useTrendsData(period: 'week' | 'month' | 'year' = 'month') {
   return useQuery({
     queryKey: analyticsKeys.trends(period),
@@ -205,7 +228,7 @@ export function useTrendsData(period: 'week' | 'month' | 'year' = 'month') {
   });
 }
 
-// Fetch city revenue loss data
+// 8. Fetch city revenue loss data (Vacant site impact)
 export function useCityLossData() {
   return useQuery({
     queryKey: analyticsKeys.cityLoss(),
@@ -223,7 +246,7 @@ export function useCityLossData() {
   });
 }
 
-// Fetch vacant sites for a specific city
+// 9. Fetch vacant sites for a specific city
 export function useVacantSites(city: string | null) {
   return useQuery({
     queryKey: analyticsKeys.vacantSites(city || ''),
@@ -243,7 +266,7 @@ export function useVacantSites(city: string | null) {
   });
 }
 
-// Fetch monthly revenue trend
+// 10. Fetch monthly revenue trend (Bar chart data)
 export function useRevenueTrend() {
   return useQuery({
     queryKey: analyticsKeys.revenueTrend(),
@@ -262,7 +285,7 @@ export function useRevenueTrend() {
   });
 }
 
-// Fetch state revenue distribution
+// 11. Fetch state revenue distribution (Pie chart data)
 export function useStateRevenue() {
   return useQuery({
     queryKey: analyticsKeys.stateRevenue(),

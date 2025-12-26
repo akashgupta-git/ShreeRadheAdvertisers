@@ -109,6 +109,23 @@ router.patch('/:id/attend', authMiddleware, async (req, res) => {
   }
 });
 
-
+// Add this route to allow reverting an inquiry to unattended status
+router.patch('/:id/unattend', authMiddleware, async (req, res) => {
+  try {
+    const contact = await Contact.findByIdAndUpdate(
+      req.params.id, 
+      { 
+        attended: false, 
+        attendedAt: null,
+        status: 'Pending' // Reset status to pending
+      }, 
+      { new: true }
+    );
+    if (!contact) return res.status(404).json({ message: 'Contact not found' });
+    res.json(contact);
+  } catch (error) {
+    res.status(500).json({ message: 'Revert failed' });
+  }
+});
 
 module.exports = router;

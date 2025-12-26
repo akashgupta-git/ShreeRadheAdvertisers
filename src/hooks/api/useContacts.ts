@@ -117,19 +117,18 @@ export function useMarkAsAttended() {
   });
 }
 
-// Hook to handle unmarking/reverting
+// Hook to handle moving inquiries back to active status
 export function useUnmarkAsAttended() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      // Assuming your backend supports a toggle or a specific "unattend" endpoint
       const response = await apiClient.patch<ApiResponse<ContactSubmission>>(
-        `/api/contact/${id}/unattend` 
+        `/api/contact/${id}/unattend`
       );
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: contactKeys.all });
+      queryClient.invalidateQueries({ queryKey: contactKeys.all }); // Refresh all lists
     },
   });
 }
