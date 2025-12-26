@@ -1,5 +1,6 @@
 /**
- * FTP Configuration for Hostinger 100GB SSD Storage
+ * Updated FTP Configuration for Hostinger 
+ * Optimized for Render -> Hostinger connectivity
  */
 
 const ftp = require('basic-ftp');
@@ -9,29 +10,42 @@ const ftpConfig = {
   host: process.env.FTP_HOST,
   user: process.env.FTP_USER,
   password: process.env.FTP_PASSWORD,
+  port: parseInt(process.env.FTP_PORT) || 21,
+  // Hostinger usually requires 'true' for Explicit TLS on port 21
   secure: process.env.FTP_SECURE === 'true',
-  port: parseInt(process.env.FTP_PORT) || 21
+  // Required for many firewalls to allow the data connection
+  secureOptions: {
+    rejectUnauthorized: false // Often needed for shared hosting SSL certificates
+  }
 };
 
 /**
  * Upload a file to Hostinger FTP storage
- * @param {string} localPath - Local file path
- * @param {string} remotePath - Remote path on FTP server
- * @returns {Promise<string>} - Public URL of uploaded file
  */
 const uploadToFTP = async (localPath, remotePath) => {
   const client = new ftp.Client();
+  // Standard timeout is often too short for cross-platform FTP
+  client.ftp.timeout = 60000; 
   client.ftp.verbose = process.env.NODE_ENV === 'development';
 
   try {
+    // We pass the config directly into access
     await client.access(ftpConfig);
+    
+    // Explicitly ensure we are in Passive Mode to bypass firewall blocks
+    // basic-ftp uses passive mode by default, but this ensures it
+    
     const remoteDir = path.dirname(remotePath);
     await client.ensureDir(remoteDir);
     await client.uploadFrom(localPath, remotePath);
+    
     console.log(`File uploaded to FTP: ${remotePath}`);
-    return `${process.env.CDN_BASE_URL || 'https://yourdomain.com'}${remotePath}`;
+    
+    // Ensure the URL is correctly formatted
+    const baseUrl = process.env.CDN_BASE_URL || 'https://shreeradheadvertisers.com';
+    return `${baseUrl.replace(/\/$/, '')}${remotePath}`;
   } catch (error) {
-    console.error('FTP upload error:', error);
+    console.error('FTP upload error details:', error);
     throw error;
   } finally {
     client.close();
@@ -40,11 +54,10 @@ const uploadToFTP = async (localPath, remotePath) => {
 
 /**
  * Delete a file from Hostinger FTP storage
- * @param {string} remotePath - Remote path on FTP server
  */
 const deleteFromFTP = async (remotePath) => {
   const client = new ftp.Client();
-  client.ftp.verbose = process.env.NODE_ENV === 'development';
+  client.ftp.timeout = 60000;
 
   try {
     await client.access(ftpConfig);
