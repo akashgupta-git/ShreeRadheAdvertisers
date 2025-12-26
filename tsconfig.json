@@ -15,7 +15,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["./sra-frontend/src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["sra-frontend/src"],
