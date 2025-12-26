@@ -135,6 +135,7 @@ export interface Customer {
 // ============= CONTACT FORM =============
 export interface ContactSubmission {
   _id: string;
+  inquiryId: string;
   name: string;
   email: string;
   phone: string;
@@ -142,6 +143,8 @@ export interface ContactSubmission {
   mediaType?: MediaType;
   message: string;
   status: ContactStatus;
+  attended: boolean;
+  attendedAt?: string;
   notes?: string;
   assignedTo?: string;
   createdAt: string;

@@ -98,3 +98,21 @@ export function useUpdateContactStatus() {
     },
   });
 }
+
+export function useMarkAsAttended() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // Provide the generic type <ApiResponse<ContactSubmission>>
+      const response = await apiClient.patch<ApiResponse<ContactSubmission>>(
+        `/api/contact/${id}/attend`
+      );
+      // Now VS Code knows 'data' is a ContactSubmission object
+      return response.data;
+    },
+    onSuccess: () => {
+      // This invalidates all contact-related queries to refresh the lists
+      queryClient.invalidateQueries({ queryKey: contactKeys.all });
+    },
+  });
+}
