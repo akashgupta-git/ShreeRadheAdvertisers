@@ -59,8 +59,12 @@ const MediaManagement = () => {
     if (!itemToDelete) return;
     
     try {
-      // Use _id from backend model
-      await deleteMedia.mutateAsync(itemToDelete._id);
+      // Use _id from backend or id from static data
+      const deleteId = itemToDelete._id || itemToDelete.id;
+      if (!deleteId) {
+        throw new Error('Invalid media item - missing ID');
+      }
+      await deleteMedia.mutateAsync(deleteId);
       toast({ 
         title: "Moved to Recycle Bin", 
         description: "The media location has been deactivated and moved to the bin." 
@@ -68,7 +72,7 @@ const MediaManagement = () => {
     } catch (error) {
       toast({ 
         title: "Error", 
-        description: "Failed to delete the media item.",
+        description: error instanceof Error ? error.message : "Failed to delete the media item.",
         variant: "destructive"
       });
     } finally {
@@ -77,11 +81,19 @@ const MediaManagement = () => {
   };
 
   const handleStatusToggle = (id: string, currentStatus: string) => {
+    if (!id) {
+      toast({ title: "Error", description: "Invalid media ID", variant: "destructive" });
+      return;
+    }
     const nextStatus = currentStatus === 'Available' ? 'Maintenance' : 'Available';
     updateMedia.mutate({ id, data: { status: nextStatus as MediaStatus } });
   };
 
   const handleEdit = (id: string) => {
+    if (!id) {
+      toast({ title: "Error", description: "Invalid media ID", variant: "destructive" });
+      return;
+    }
     navigate(`/admin/media/edit/${id}`);
   };
 

@@ -87,7 +87,32 @@ router.post('/restore', authMiddleware, async (req, res) => {
   }
 });
 
-// Permanently delete item (protected)
+// Permanently delete item (protected) - Using POST to allow body
+router.post('/permanent-delete', authMiddleware, async (req, res) => {
+  try {
+    const { id, type } = req.body;
+    
+    const models = { 
+      media: Media, 
+      customer: Customer, 
+      booking: Booking, 
+      tender: Tender, 
+      tax: TaxRecord 
+    };
+    const Model = models[type];
+    
+    if (!Model) {
+      return res.status(400).json({ message: 'Invalid type' });
+    }
+    
+    await Model.findByIdAndDelete(id);
+    res.json({ message: 'Item permanently deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to delete item' });
+  }
+});
+
+// Legacy DELETE endpoint (kept for compatibility)
 router.delete('/delete', authMiddleware, async (req, res) => {
   try {
     const { id, type } = req.body;

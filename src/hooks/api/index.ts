@@ -7,3 +7,4 @@ export * from './useContacts';
 export * from './usePayments';
 export * from './useMaintenance';
 export * from './useAnalytics';
+export * from './useRecycleBin';

@@ -7,6 +7,16 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Booking, PaymentMode, PaymentStatus, customers } from "@/lib/data";
-import { IndianRupee, CreditCard, Pencil, Calculator, ChevronsUpDown, Check, Trash2, Search } from "lucide-react";
+import { IndianRupee, CreditCard, Pencil, Calculator, ChevronsUpDown, Check, Trash2, Search, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { cn, formatIndianRupee } from "@/lib/utils";
@@ -502,6 +512,7 @@ export function PaymentListDialog({ open, onOpenChange, bookings, initialFilter 
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isRecordOpen, setIsRecordOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) setFilter(initialFilter);
@@ -640,11 +651,7 @@ export function PaymentListDialog({ open, onOpenChange, bookings, initialFilter 
                               size="icon" 
                               variant="ghost" 
                               className="h-8 w-8 text-destructive"
-                              onClick={() => {
-                                if(confirm(`Permanently delete payment record for ${booking.id}?`)) {
-                                  onDeleteBooking(booking.id);
-                                }
-                              }}
+                              onClick={() => setDeleteConfirm(booking.id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -663,6 +670,36 @@ export function PaymentListDialog({ open, onOpenChange, bookings, initialFilter 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete Payment Record?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the payment record for booking #{deleteConfirm?.slice(-6)}. 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (deleteConfirm) {
+                  onDeleteBooking(deleteConfirm);
+                  setDeleteConfirm(null);
+                }
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Delete Permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <RecordPaymentDialog 
         booking={selectedBooking}
