@@ -35,6 +35,7 @@ const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 // Explicitly allow both local and production origins to prevent CORS errors
 const allowedOrigins = [
   frontendUrl,
+  'http://localhost:8080',
   'https://shreeradheadvertisers.com',
   'https://www.shreeradheadvertisers.com',
   'http://localhost:5173',

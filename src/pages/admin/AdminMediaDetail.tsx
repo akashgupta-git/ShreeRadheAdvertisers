@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useParams, useNavigate } from "react-router-dom";
 import { getMediaById } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
