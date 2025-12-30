@@ -7,12 +7,13 @@ const path = require('path');
 
 const sftpConfig = {
   host: process.env.FTP_HOST,
-  port: process.env.FTP_PORT, // SFTP always uses port 22
+  port: 22, // SFTP always uses port 22, not FTPS port 65002
   username: process.env.FTP_USER,
   password: process.env.FTP_PASSWORD,
-  // Increase timeout to allow for slower handshakes
-  readyTimeout: 20000,
-  // Add algorithms if Hostinger uses older SSH versions
+  readyTimeout: 30000, // 30 seconds for slower connections
+  retries: 2,
+  retry_factor: 2,
+  retry_minTimeout: 2000,
   debug: console.log
 };
 
