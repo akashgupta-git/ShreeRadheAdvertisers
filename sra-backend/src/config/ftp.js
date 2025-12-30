@@ -13,8 +13,11 @@ const sftpConfig = {
   readyTimeout: 30000, // 30 seconds for slower connections
   retries: 2,
   retry_factor: 2,
-  retry_minTimeout: 2000,
-  debug: console.log
+  retry_minTimeout: 40000,
+  debug: console.log,
+  algorithms: {
+    serverHostKey: ['ssh-rsa', 'ssh-dss', 'ecdsa-sha2-nistp256'] // Explicitly allow common keys
+  }
 };
 
 const uploadToFTP = async (localPath, remotePath) => {
