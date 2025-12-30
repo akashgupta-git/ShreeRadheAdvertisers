@@ -19,23 +19,48 @@ const sftpConfig = {
 const uploadToFTP = async (localPath, remotePath) => {
   const sftp = new Client();
   try {
+    console.log('=== SFTP Upload Debug ===');
+    console.log('Local file:', localPath);
+    console.log('Remote path requested:', remotePath);
+    
     await sftp.connect(sftpConfig);
+    console.log('SFTP connected successfully');
+    
+    // List root directory to understand structure
+    try {
+      const rootList = await sftp.list('/');
+      console.log('Root directory contents:', rootList.map(f => f.name));
+    } catch (listErr) {
+      console.log('Could not list root:', listErr.message);
+    }
     
     // Ensure the remote directory exists
     const remoteDir = path.dirname(remotePath);
+    console.log('Creating directory:', remoteDir);
     await sftp.mkdir(remoteDir, true);
     
     // Upload the file
     await sftp.put(localPath, remotePath);
+    console.log(`File uploaded successfully to: ${remotePath}`);
     
-    console.log(`File uploaded via SFTP: ${remotePath}`);
-    // Inside uploadToFTP in src/config/ftp.js
-    const baseUrl = process.env.CDN_BASE_URL || 'https://shreeradheadvertisers.com/uploads';
-    // Standardize path: remove '/public_html' because it's not part of the public URL
-    const webPath = remotePath.replace('/public_html', ''); 
-    return `${baseUrl.replace(/\/$/, '')}${webPath}`;
+    // Verify file exists
+    try {
+      const exists = await sftp.exists(remotePath);
+      console.log('File verification:', exists ? 'EXISTS' : 'NOT FOUND');
+    } catch (verifyErr) {
+      console.log('Could not verify:', verifyErr.message);
+    }
+    
+    // Build public URL - remove 'public_html/' prefix for web access
+    const baseUrl = process.env.CDN_BASE_URL || 'https://shreeradheadvertisers.com';
+    const webPath = remotePath.replace('public_html/', '/');
+    const finalUrl = `${baseUrl.replace(/\/$/, '')}${webPath}`;
+    console.log('Generated URL:', finalUrl);
+    
+    return finalUrl;
   } catch (error) {
-    console.error('SFTP upload error:', error);
+    console.error('SFTP upload error:', error.message);
+    console.error('Full error:', error);
     throw error;
   } finally {
     await sftp.end();

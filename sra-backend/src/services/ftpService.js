@@ -5,15 +5,23 @@ const { uploadToFTP } = require('../config/ftp');
  */
 exports.uploadToHostinger = async (localPath, fileName) => {
   try {
-    // Try relative pathing: Hostinger SFTP often starts inside the user root or public_html
-    // Change from '/public_html/uploads/media/' to 'public_html/uploads/media/'
+    console.log('=== Hostinger Upload Bridge ===');
+    console.log('Source file:', localPath);
+    console.log('Target filename:', fileName);
+    
+    // Hostinger SFTP typically lands in user home, public_html is the web root
+    // Try with relative path first (no leading slash)
     const remotePath = `public_html/uploads/media/${fileName}`;
+    console.log('Full remote path:', remotePath);
     
     const fileUrl = await uploadToFTP(localPath, remotePath);
+    console.log('Upload successful, URL:', fileUrl);
     
     return fileUrl;
   } catch (err) {
-    console.error("SFTP Upload Bridge Error:", err.message);
+    console.error("=== SFTP Upload Failed ===");
+    console.error("Error:", err.message);
+    console.error("Stack:", err.stack);
     throw new Error("Failed to transfer image to permanent storage.");
   }
 };
