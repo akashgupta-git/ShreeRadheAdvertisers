@@ -110,8 +110,10 @@ export function MediaTable({ data, onDelete, onEdit, onToggleStatus }: MediaTabl
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedMedia.map((media) => {
-              const itemId = media._id;
+          {paginatedMedia.map((media) => {
+              // Use _id from backend or fallback to id from static data
+              const itemId = media._id || media.id;
+              if (!itemId) return null; // Skip items without valid ID
               return (
                 <TableRow key={itemId} className="hover:bg-muted/10 group">
                   <TableCell className="font-mono text-[10px] pl-6 text-muted-foreground">

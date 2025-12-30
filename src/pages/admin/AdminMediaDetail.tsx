@@ -84,15 +84,15 @@ const AdminMediaDetail = () => {
               <h1 className="text-2xl font-bold">{media.name}</h1>
               <Badge variant={statusVariant}>{media.status}</Badge>
             </div>
-            <p className="text-muted-foreground font-mono">{media.id}</p>
+            <p className="text-muted-foreground font-mono">{media._id || media.id}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => navigate(`/admin/availability?mediaId=${media._id || media.id}`)}>
             <Calendar className="h-4 w-4 mr-2" />
             Manage Availability
           </Button>
-          <Button onClick={() => navigate(`/admin/media/edit/${media.id}`)}>
+          <Button onClick={() => navigate(`/admin/media/edit/${media._id || media.id}`)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Media
           </Button>
