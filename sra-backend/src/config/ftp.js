@@ -6,7 +6,12 @@ const ftpConfig = {
     user: process.env.FTP_USER,
     password: process.env.FTP_PASSWORD,
     port: 21, // Standard FTP port
-    secure: false // Set to true if your Hostinger plan supports/requires FTPS
+    secure: false,
+    timeout: 60000, 
+    settings: {
+        retries: 2,
+        retryDelay: 5000
+    }
 };
 
 /**
