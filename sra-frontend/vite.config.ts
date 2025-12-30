@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vite";
 import { componentTagger } from "lovable-tagger";
 
+// Stub file to satisfy tsconfig.node.json reference
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -14,7 +15,7 @@ export default defineConfig(({ mode }) => ({
   ].filter(Boolean),
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "../src"),
     },
   },
 }));
