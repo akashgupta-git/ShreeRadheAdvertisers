@@ -21,15 +21,13 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
     }
 
     const localPath = req.file.path;
-    const folder = req.body.folder || 'documents';
+    const folder = req.body.folder || 'documents'; // Default to documents if not provided
     
-    // Create a unique filename with timestamp to prevent overwriting on Hostinger
     const fileName = `${folder}-${Date.now()}${path.extname(req.file.originalname)}`;
     
-    // Bridge to Hostinger via the updated service
-    const fileUrl = await uploadToHostinger(localPath, fileName);
+    // UPDATED: Now passing 'folder' to the service
+    const fileUrl = await uploadToHostinger(localPath, fileName, folder);
     
-    // Clean up local temp file on Render to save disk space
     if (fs.existsSync(localPath)) {
       fs.unlinkSync(localPath);
     }
@@ -44,7 +42,7 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
     console.error('Upload bridge error:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'File deployment failed during FTP transfer' 
+      message: error.message || 'File deployment failed during FTP transfer' 
     });
   }
 });
@@ -60,14 +58,11 @@ router.post('/image', authMiddleware, upload.single('file'), async (req, res) =>
     }
 
     const localPath = req.file.path;
-    
-    // Standardized naming convention for media assets
     const fileName = `media-${Date.now()}${path.extname(req.file.originalname)}`;
     
-    // Deploy to Hostinger public_html/uploads/media
-    const fileUrl = await uploadToHostinger(localPath, fileName);
+    // UPDATED: Explicitly using 'media' as the folder
+    const fileUrl = await uploadToHostinger(localPath, fileName, 'media');
     
-    // Cleanup local buffer
     if (fs.existsSync(localPath)) {
       fs.unlinkSync(localPath);
     }
