@@ -10,13 +10,19 @@ const sftpConfig = {
   port: 65002, // SFTP always uses port 22, not FTPS port 65002
   username: process.env.FTP_USER,
   password: process.env.FTP_PASSWORD,
-  readyTimeout: 30000, // 30 seconds for slower connections
+  readyTimeout: 60000, // 30 seconds for slower connections
   retries: 2,
   retry_factor: 2,
   retry_minTimeout: 40000,
   debug: console.log,
+  // Force standard algorithms that Hostinger supports
   algorithms: {
-    serverHostKey: ['ssh-rsa', 'ssh-dss', 'ecdsa-sha2-nistp256'] // Explicitly allow common keys
+    serverHostKey: ['ssh-rsa', 'ecdsa-sha2-nistp256'],
+    kex: ['diffie-hellman-group14-sha256']
+  },
+  // This helps bypass some strict handshake checks
+  options: {
+    allowHalfOpen: true
   }
 };
 
