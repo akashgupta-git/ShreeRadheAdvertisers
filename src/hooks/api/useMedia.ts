@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// API Hooks for Media Management with Backend Fallback
+// API Hooks for Media Management with Cloudinary Organization
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS, isBackendConfigured } from '@/lib/api/config';
@@ -117,7 +117,7 @@ export function useMediaById(id: string) {
   });
 }
 
-// Create new media - FIX: Explicitly mapping imageUrl
+// Create new media
 export function useCreateMedia() {
   const queryClient = useQueryClient();
 
@@ -125,15 +125,9 @@ export function useCreateMedia() {
     mutationFn: async (data: CreateMediaRequest) => {
       if (!isBackendConfigured()) throw new Error('Backend not configured.');
 
-      // Bridge: Ensure 'imageUrl' is populated from 'image' if 'imageUrl' is missing
-      const payload = {
-        ...data,
-        imageUrl: data.imageUrl || (data as any).image 
-      };
-
       const response = await apiClient.post<ApiResponse<MediaLocation>>(
         API_ENDPOINTS.MEDIA.CREATE,
-        payload
+        data
       );
       
       return response.data || response; 
@@ -144,7 +138,7 @@ export function useCreateMedia() {
   });
 }
 
-// Update media - FIX: Explicitly mapping imageUrl
+// Update media
 export function useUpdateMedia() {
   const queryClient = useQueryClient();
 
@@ -152,15 +146,9 @@ export function useUpdateMedia() {
     mutationFn: async ({ id, data }: { id: string; data: UpdateMediaRequest }) => {
       if (!isBackendConfigured()) throw new Error('Backend not configured.');
 
-      // Bridge: Ensure the Hostinger URL reaches the 'imageUrl' field in DB
-      const payload = {
-        ...data,
-        imageUrl: data.imageUrl || (data as any).image
-      };
-
       const response = await apiClient.put<ApiResponse<MediaLocation>>(
         API_ENDPOINTS.MEDIA.UPDATE(id),
-        payload
+        data
       );
       return response.data || response;
     },
@@ -204,16 +192,56 @@ export function useRestoreMedia() {
   });
 }
 
-// Upload media image (FTP bridge to Hostinger)
+/**
+ * Upload Hook for Cloudinary Organization (Images)
+ * Organizes photography into ShreeRadhe/Districts/[District]/Images
+ */
 export function useUploadMediaImage() {
   return useMutation({
-    mutationFn: async ({ file, folder }: { file: File; folder?: string }) => {
+    mutationFn: async ({ 
+      file, 
+      customId, 
+      district 
+    }: { 
+      file: File; 
+      customId: string; 
+      district: string 
+    }) => {
       if (!isBackendConfigured()) throw new Error('Backend not configured.');
 
       return await apiClient.uploadFile(
         API_ENDPOINTS.UPLOAD.IMAGE,
         file,
-        folder ? { folder } : undefined
+        { customId, district }
+      );
+    },
+  });
+}
+
+/**
+ * Upload Hook for Organized Documents (PDFs)
+ * Organizes Tenders/Taxes into ShreeRadhe/Districts/[District]/Documents
+ */
+export function useUploadDocument() {
+  return useMutation({
+    mutationFn: async ({ 
+      file, 
+      customId, 
+      district, 
+      type 
+    }: { 
+      file: File; 
+      customId: string; 
+      district: string; 
+      type: 'tender' | 'tax' | 'general' 
+    }) => {
+      if (!isBackendConfigured()) throw new Error('Backend not configured.');
+
+      // Using the specialized document route on the backend
+      return await apiClient.uploadFile(
+        '/upload/document', 
+        file,
+        { customId, district, type }
       );
     },
   });

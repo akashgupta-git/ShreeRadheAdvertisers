@@ -23,6 +23,7 @@ export interface MediaLocation {
   size: string;
   lighting: 'Front Lit' | 'Back Lit' | 'Non-Lit' | 'Digital';
   facing: string;
+  imageUrl?: string;
   image: string;
   pricePerMonth: number;
   bookedDates?: { start: string; end: string }[];

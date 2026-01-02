@@ -48,7 +48,6 @@ const AddMedia = () => {
   });
 
   const availableDistricts = getDistrictsForState(formData.state);
-  const availableCities = getCitiesForDistrict(formData.district);
 
   const handleStateChange = (state: string) => {
     setFormData({ ...formData, state, district: '', city: '' });
@@ -83,17 +82,18 @@ const AddMedia = () => {
     try {
       let permanentImageUrl = '';
 
-      // 1. Upload to Hostinger
+      // 1. Upload to Cloudinary with organization metadata
       if (selectedFile && isBackendConfigured()) {
         const uploadResponse: any = await uploadImage.mutateAsync({ 
           file: selectedFile,
-          folder: 'media'
-        });
+          customId: formData.id,     // Organized naming
+          district: formData.district // Organized folder
+        } as any);
         permanentImageUrl = uploadResponse.url; 
       }
 
       if (isBackendConfigured()) {
-        // 2. Submit with explicit imageUrl mapping
+        // 2. Submit Media Data
         await createMedia.mutateAsync({
           id: formData.id,
           name: formData.name,
@@ -107,14 +107,14 @@ const AddMedia = () => {
           facing: formData.facing,
           pricePerMonth: Number(formData.pricePerMonth),
           status: 'Available',
-          imageUrl: permanentImageUrl, // FIX: Use imageUrl field
+          imageUrl: permanentImageUrl,
           landmark: formData.id
         });
       }
 
       toast({
         title: "Media Added Successfully!",
-        description: "The new media location has been added to the system.",
+        description: "The new media location has been added and image organized by district.",
       });
       navigate('/admin/media');
     } catch (error) {
@@ -237,6 +237,7 @@ const AddMedia = () => {
                   placeholder="Enter complete address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  required
                 />
               </div>
             </Card>
@@ -251,6 +252,7 @@ const AddMedia = () => {
                     placeholder="e.g., 40x20 ft"
                     value={formData.size}
                     onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -307,6 +309,7 @@ const AddMedia = () => {
                   placeholder="e.g., 100000"
                   value={formData.pricePerMonth}
                   onChange={(e) => setFormData({ ...formData, pricePerMonth: e.target.value })}
+                  required
                 />
               </div>
             </Card>

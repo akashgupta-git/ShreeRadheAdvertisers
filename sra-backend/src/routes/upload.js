@@ -1,81 +1,81 @@
-/**
- * Upload Routes - FTP Bridge to Hostinger 100GB SSD
- */
 const express = require('express');
 const router = express.Router();
 const fs = require('fs');
-const path = require('path');
 const { upload } = require('../middleware/upload');
-const { uploadToHostinger } = require('../services/ftpService');
+const { uploadToCloudinary } = require('../services/cloudinaryService');
 const { authMiddleware } = require('../middleware/auth');
 
 /**
- * General File Upload
- * Bridges any file from Render temp storage to Hostinger public_html/uploads/documents
+ * Image Upload - Organizes by District and ID
+ * Used by Media/Billboard Photography
  */
-router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
+router.post('/image', authMiddleware, upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file provided' });
+    if (!req.file) return res.status(400).json({ message: 'No image provided' });
+
+    // Metadata sent from frontend AddMedia form
+    const { customId, district } = req.body; 
+    
+    if (!customId || !district) {
+      return res.status(400).json({ message: 'SRA ID and District required for organization' });
     }
 
-    const localPath = req.file.path;
-    const folder = req.body.folder || 'documents';
+    const fileUrl = await uploadToCloudinary(req.file.path, customId, district, 'media');
     
-    const fileName = `${folder}-${Date.now()}${path.extname(req.file.originalname)}`;
+    // Cleanup Render temp storage immediately
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     
-    const fileUrl = await uploadToHostinger(localPath, fileName, folder);
-    
-    if (fs.existsSync(localPath)) {
-      fs.unlinkSync(localPath);
-    }
-    
-    res.json({ 
-      success: true, 
-      url: fileUrl, 
-      filename: fileName,
-      message: 'File successfully bridged to Hostinger permanent storage' 
-    });
+    res.json({ success: true, url: fileUrl });
   } catch (error) {
-    console.error('Upload bridge error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message || 'File deployment failed during FTP transfer' 
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 
 /**
- * Specialized Image Upload
- * Optimized specifically for Media/Billboard photography
+ * Document Upload - Used for Tenders and Tax Receipts
+ * Organizes PDFs into ShreeRadhe/Districts/Name/Documents
  */
-router.post('/image', authMiddleware, upload.single('file'), async (req, res) => {
+router.post('/document', authMiddleware, upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No image provided' });
+    if (!req.file) return res.status(400).json({ message: 'No document provided' });
+
+    // metadata: customId (Tender# or TaxID), district, and type
+    const { customId, district, type } = req.body; 
+    
+    if (!customId || !district) {
+      return res.status(400).json({ message: 'Document ID and District required' });
     }
 
-    const localPath = req.file.path;
-    const fileName = `media-${Date.now()}${path.extname(req.file.originalname)}`;
+    // Uploads to /Documents subfolder instead of /Images
+    const fileUrl = await uploadToCloudinary(req.file.path, customId, district, type || 'documents');
     
-    const fileUrl = await uploadToHostinger(localPath, fileName, 'media');
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     
-    if (fs.existsSync(localPath)) {
-      fs.unlinkSync(localPath);
-    }
-    
-    res.json({ 
-      success: true, 
-      url: fileUrl, 
-      filename: fileName,
-      message: 'Billboard photography successfully deployed to permanent storage'
-    });
+    res.json({ success: true, url: fileUrl });
   } catch (error) {
-    console.error('Image deployment bridge error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: error.message || 'Image deployment failed' 
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+/**
+ * Bulk Document Upload 
+ */
+router.post('/bulk', authMiddleware, upload.array('files', 10), async (req, res) => {
+  try {
+    const { district, type } = req.body;
+    const uploadPromises = req.files.map(file => 
+      uploadToCloudinary(file.path, `doc-${Date.now()}-${Math.floor(Math.random() * 1000)}`, district, type)
+    );
+    
+    const urls = await Promise.all(uploadPromises);
+    
+    req.files.forEach(file => {
+      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
     });
+
+    res.json({ success: true, urls });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

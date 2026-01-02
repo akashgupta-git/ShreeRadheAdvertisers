@@ -56,14 +56,13 @@ const EditMedia = () => {
         lighting: media.lighting || '',
         facing: media.facing || '',
         pricePerMonth: String(media.pricePerMonth || ''),
-        imageUrl: media.imageUrl || media.image || '', 
+        imageUrl: media.imageUrl || (media as any).image || '', 
       });
-      setPreviewUrl(media.imageUrl || media.image || null);
+      setPreviewUrl(media.imageUrl || (media as any).image || null);
     }
   }, [media]);
 
   const availableDistricts = getDistrictsForState(formData.state);
-  const availableCities = getCitiesForDistrict(formData.district);
 
   const handleStateChange = (state: string) => {
     setFormData({ ...formData, state, district: '', city: '' });
@@ -88,17 +87,18 @@ const EditMedia = () => {
     try {
       let finalImageUrl = formData.imageUrl;
 
-      // 1. Upload to Hostinger
+      // 1. Upload to Cloudinary with metadata organization
       if (selectedFile && isBackendConfigured()) {
         const uploadResponse: any = await uploadImage.mutateAsync({ 
           file: selectedFile, 
-          folder: 'media' 
+          customId: formData.customId, // Organization: Use SRA ID as filename
+          district: formData.district  // Organization: Place in District folder
         });
         finalImageUrl = uploadResponse.url; 
       }
 
       if (isBackendConfigured() && media) {
-        // 2. Submit with explicit imageUrl mapping
+        // 2. Submit update to MongoDB
         await updateMedia.mutateAsync({
           id: (media._id || id)!,
           data: {
@@ -113,18 +113,18 @@ const EditMedia = () => {
             lighting: formData.lighting as any,
             facing: formData.facing,
             pricePerMonth: Number(formData.pricePerMonth),
-            imageUrl: finalImageUrl, // FIX: Save to imageUrl field
+            imageUrl: finalImageUrl,
             landmark: formData.customId
           }
         });
       }
 
-      toast({ title: "Updated Successfully" });
+      toast({ title: "Media Updated Successfully" });
       navigate('/admin/media');
     } catch (error: any) {
       console.error("Update Error:", error);
       toast({
-        title: "Error",
+        title: "Update Failed",
         description: error.response?.data?.message || error.message, 
         variant: "destructive"
       });
@@ -144,8 +144,8 @@ const EditMedia = () => {
   if (!media && !isLoading) {
     return (
       <div className="text-center py-12">
-        <h1 className="text-2xl font-bold mb-4">Media not found</h1>
-        <Button onClick={() => navigate('/admin/media')}>Back to Media</Button>
+        <h1 className="text-2xl font-bold mb-4">Media record not found</h1>
+        <Button onClick={() => navigate('/admin/media')}>Back to Media List</Button>
       </div>
     );
   }
@@ -157,8 +157,8 @@ const EditMedia = () => {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold mb-1">Edit Media</h1>
-          <p className="text-muted-foreground font-mono text-sm">{formData.customId}</p>
+          <h1 className="text-2xl font-bold mb-1">Edit Media Location</h1>
+          <p className="text-muted-foreground font-mono text-sm">Ref: {formData.customId}</p>
         </div>
       </div>
 
@@ -251,6 +251,7 @@ const EditMedia = () => {
                   id="address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Enter complete address"
                 />
               </div>
             </Card>
@@ -264,6 +265,7 @@ const EditMedia = () => {
                     id="size"
                     value={formData.size}
                     onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                    placeholder="e.g. 40x20 ft"
                   />
                 </div>
                 <div className="space-y-2">
@@ -287,6 +289,7 @@ const EditMedia = () => {
                     id="facing"
                     value={formData.facing}
                     onChange={(e) => setFormData({ ...formData, facing: e.target.value })}
+                    placeholder="e.g. Towards Civil Lines"
                   />
                 </div>
               </div>
@@ -295,22 +298,24 @@ const EditMedia = () => {
 
           <div className="space-y-6">
             <Card className="p-6 bg-card border-border/50">
-              <h3 className="font-semibold mb-4">Media Image</h3>
+              <h3 className="font-semibold mb-4">Media Photography</h3>
               <input type="file" id="media-image" accept="image/*" onChange={handleFileChange} className="hidden" />
               <label htmlFor="media-image">
-                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 cursor-pointer">
+                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 cursor-pointer group transition-colors">
                   {previewUrl ? (
                     <img src={previewUrl} alt="Preview" className="w-full aspect-video object-cover rounded mb-2" />
                   ) : (
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground group-hover:text-primary" />
                   )}
-                  <p className="text-xs">{selectedFile ? selectedFile.name : 'Change image'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedFile ? selectedFile.name : 'Click to change billboard image'}
+                  </p>
                 </div>
               </label>
             </Card>
 
             <Card className="p-6 bg-card border-border/50">
-              <h3 className="font-semibold mb-4">Pricing</h3>
+              <h3 className="font-semibold mb-4">Financials</h3>
               <div className="space-y-2">
                 <Label htmlFor="price">Monthly Rate (₹) *</Label>
                 <Input
@@ -326,9 +331,9 @@ const EditMedia = () => {
             <div className="space-y-3">
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Updating...</>
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving Changes...</>
                 ) : (
-                  <><Save className="h-4 w-4 mr-2" /> Save Changes</>
+                  <><Save className="h-4 w-4 mr-2" /> Update Media</>
                 )}
               </Button>
               <Button type="button" variant="outline" className="w-full" onClick={() => navigate(-1)}>

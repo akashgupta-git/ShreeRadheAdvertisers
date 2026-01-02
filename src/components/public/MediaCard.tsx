@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Link } from "react-router-dom";
 import { MediaLocation } from "@/lib/data"; 
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -10,7 +11,22 @@ interface MediaCardProps {
 }
 
 export function MediaCard({ media }: MediaCardProps) {
-  // Helper to determine status badge color
+  // Cloudinary Bandwidth Optimization Helper
+  const getOptimizedImage = (url: string | undefined) => {
+    if (!url) return "https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?q=80&w=1000";
+    
+    // If it's a Cloudinary URL, inject transformation parameters for bandwidth saving
+    if (url.includes('cloudinary.com')) {
+      // w_600: Resizes to 600px width
+      // c_fill: Fills the aspect ratio
+      // g_auto: Intelligent cropping
+      // q_auto: Perceptual quality optimization (No blur, high detail)
+      // f_auto: Best format for browser (WebP/AVIF)
+      return url.replace('/upload/', '/upload/w_600,c_fill,g_auto,q_auto,f_auto/');
+    }
+    return url;
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Available":
@@ -29,9 +45,10 @@ export function MediaCard({ media }: MediaCardProps) {
       {/* Image Section */}
       <div className="relative aspect-[4/3] overflow-hidden">
         <img
-          src={media.image}
+          src={getOptimizedImage(media.imageUrl || (media as any).image)}
           alt={media.name}
           className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
+          loading="lazy"
         />
         
         {/* Top Left: Status Badge */}
