@@ -134,28 +134,29 @@ const AdminMediaDetail = () => {
           </div>
 
           {/* Booking Timeline */}
-          <Card className="p-6 bg-card border-border/50">
-            <h3 className="text-lg font-semibold mb-4">Booking History</h3>
-            <div className="space-y-4">
-              {media.bookedDates && media.bookedDates.length > 0 ? (
-                // Added explicit type to the booking parameter
-                media.bookedDates.map((booking: { start: string; end: string }, i: number) => (
-                  <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
-                    <div className="w-3 h-3 rounded-full bg-destructive" />
-                    <div className="flex-1">
-                      <div className="font-medium">Booked Period</div>
-                      <div className="text-sm text-muted-foreground">{booking.start} to {booking.end}</div>
-                    </div>
+          {/* Booking Timeline */}
+        <Card className="p-6 bg-card border-border/50">
+          <h3 className="text-lg font-semibold mb-4">Booking History</h3>
+          <div className="space-y-4">
+            {media.bookedDates && media.bookedDates.length > 0 ? (
+              // Added explicit type to the booking parameter
+              media.bookedDates.map((booking: { start: string; end: string }, i: number) => (
+                <div key={i} className="flex items-center gap-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+                  <div className="w-3 h-3 rounded-full bg-destructive" />
+                  <div className="flex-1">
+                    <div className="font-medium">Booked Period</div>
+                    <div className="text-sm text-muted-foreground">{booking.start} to {booking.end}</div>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                  <p>No booking history available</p>
                 </div>
-              )}
-            </div>
-          </Card>
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p>No booking history available</p>
+              </div>
+            )}
+          </div>
+        </Card>
 
           {/* AI Insight */}
           <Card className="p-6 bg-gradient-to-br from-primary/10 via-purple-500/5 to-transparent border-primary/20">

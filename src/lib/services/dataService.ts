@@ -17,7 +17,7 @@ export type { MediaFilters, BookingFilters };
 // Check if backend is properly configured
 export const isBackendConfigured = (): boolean => {
   const url = API_BASE_URL;
-  return !!url && url !== 'http://localhost:5000' && !url.includes('your-backend');
+  return !!url && url !== 'http://localhost:5000' && !url.includes('https://shreeradhe-backend.onrender.com');
 };
 
 // Type adapter: Convert API types to frontend types
