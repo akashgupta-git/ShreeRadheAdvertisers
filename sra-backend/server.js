@@ -75,7 +75,7 @@ app.use('/api/payments', routes.paymentRoutes);
 app.use('/api/maintenance', routes.maintenanceRoutes);
 app.use('/api/contact', routes.contactRoutes);
 app.use('/api/compliance', routes.complianceRoutes);
-app.use('/api/upload', routes.uploadRoutes);
+app.use('/api/media/upload', routes.uploadRoutes);
 app.use('/api/recycle-bin', routes.recycleBinRoutes);
 
 // Error Handler

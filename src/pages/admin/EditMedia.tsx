@@ -25,6 +25,8 @@ const EditMedia = () => {
   const { data: media, isLoading } = useMediaById(id || "");
   const updateMedia = useUpdateMedia();
   const uploadImage = useUploadMediaImage();
+  
+  // HOOK: Pull cascading location logic
   const { states, getCitiesForDistrict, getDistrictsForState } = useLocationData();
   
   const [formData, setFormData] = useState({
@@ -33,7 +35,7 @@ const EditMedia = () => {
     type: '',
     state: '',
     district: '',
-    city: '',
+    city: '', // This acts as our Town/Tehsil selector
     address: '',
     size: '',
     lighting: '',
@@ -62,7 +64,9 @@ const EditMedia = () => {
     }
   }, [media]);
 
+  // Logic for cascading dropdowns
   const availableDistricts = getDistrictsForState(formData.state);
+  const availableTehsils = getCitiesForDistrict(formData.district);
 
   const handleStateChange = (state: string) => {
     setFormData({ ...formData, state, district: '', city: '' });
@@ -82,23 +86,33 @@ const EditMedia = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.district || !formData.city) {
+      toast({
+        title: "Location Required",
+        description: "Please select a valid District and Town/Tehsil from the managed list.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       let finalImageUrl = formData.imageUrl;
 
-      // 1. Upload to Cloudinary with metadata organization
+      // 1. Organized Cloudinary Upload
       if (selectedFile && isBackendConfigured()) {
         const uploadResponse: any = await uploadImage.mutateAsync({ 
           file: selectedFile, 
-          customId: formData.customId, // Organization: Use SRA ID as filename
-          district: formData.district  // Organization: Place in District folder
+          customId: formData.customId, // Filename strategy
+          district: formData.district  // Folder organization
         });
         finalImageUrl = uploadResponse.url; 
       }
 
       if (isBackendConfigured() && media) {
-        // 2. Submit update to MongoDB
+        // 2. Database Sync
         await updateMedia.mutateAsync({
           id: (media._id || id)!,
           data: {
@@ -107,7 +121,7 @@ const EditMedia = () => {
             type: formData.type as any,
             state: formData.state,
             district: formData.district,
-            city: formData.city,
+            city: formData.city, // Saves the clean Tehsil string
             address: formData.address,
             size: formData.size,
             lighting: formData.lighting as any,
@@ -207,7 +221,7 @@ const EditMedia = () => {
             </Card>
 
             <Card className="p-6 bg-card border-border/50">
-              <h3 className="text-lg font-semibold mb-4">Location Details</h3>
+              <h3 className="text-lg font-semibold mb-4">Managed Location Details</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-2">
                   <Label>State *</Label>
@@ -236,13 +250,19 @@ const EditMedia = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>City/Town *</Label>
-                  <Input 
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="Enter city"
+                  <Label>Town / Tehsil *</Label>
+                  <Select 
+                    value={formData.city} 
+                    onValueChange={(v) => setFormData({ ...formData, city: v })}
                     disabled={!formData.district}
-                  />
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select Town/Tehsil" /></SelectTrigger>
+                    <SelectContent>
+                      {availableTehsils.map(tehsil => (
+                        <SelectItem key={tehsil} value={tehsil}>{tehsil}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="mt-5 space-y-2">

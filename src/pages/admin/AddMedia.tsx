@@ -37,9 +37,9 @@ const AddMedia = () => {
     id: '', 
     name: '',
     type: '',
-    state: activeState, 
+    state: activeState || 'Chhattisgarh', 
     district: '',
-    city: '',
+    city: '', // This stores the selected Town/Tehsil
     address: '',
     size: '',
     lighting: '',
@@ -48,6 +48,7 @@ const AddMedia = () => {
   });
 
   const availableDistricts = getDistrictsForState(formData.state);
+  const availableTehsils = getCitiesForDistrict(formData.district);
 
   const handleStateChange = (state: string) => {
     setFormData({ ...formData, state, district: '', city: '' });
@@ -71,7 +72,7 @@ const AddMedia = () => {
     if (!formData.id || !formData.name || !formData.type || !formData.state || !formData.district || !formData.city || !formData.pricePerMonth) {
       toast({
         title: "Missing Fields",
-        description: "Please fill all required fields including Media ID.",
+        description: "Please fill all required fields including Town/Tehsil selection.",
         variant: "destructive",
       });
       return;
@@ -86,8 +87,8 @@ const AddMedia = () => {
       if (selectedFile && isBackendConfigured()) {
         const uploadResponse: any = await uploadImage.mutateAsync({ 
           file: selectedFile,
-          customId: formData.id,     // Organized naming
-          district: formData.district // Organized folder
+          customId: formData.id,     // Organized naming (e.g. SRA-101)
+          district: formData.district // Organized folder (e.g. Raipur)
         } as any);
         permanentImageUrl = uploadResponse.url; 
       }
@@ -100,7 +101,7 @@ const AddMedia = () => {
           type: formData.type as any,
           state: formData.state,
           district: formData.district,
-          city: formData.city,
+          city: formData.city, // Stores the Town/Tehsil string
           address: formData.address,
           size: formData.size,
           lighting: formData.lighting as any,
@@ -114,7 +115,7 @@ const AddMedia = () => {
 
       toast({
         title: "Media Added Successfully!",
-        description: "The new media location has been added and image organized by district.",
+        description: `The media has been organized under ${formData.district} / ${formData.city}.`,
       });
       navigate('/admin/media');
     } catch (error) {
@@ -221,13 +222,19 @@ const AddMedia = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>City/Town *</Label>
-                  <Input 
+                  <Label>Town / Tehsil *</Label>
+                  <Select 
                     value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="Enter city"
+                    onValueChange={(v) => setFormData({ ...formData, city: v })}
                     disabled={!formData.district}
-                  />
+                  >
+                    <SelectTrigger><SelectValue placeholder="Select Town/Tehsil" /></SelectTrigger>
+                    <SelectContent>
+                      {availableTehsils.map(tehsil => (
+                        <SelectItem key={tehsil} value={tehsil}>{tehsil}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="mt-5 space-y-2">

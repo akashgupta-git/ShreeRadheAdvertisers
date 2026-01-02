@@ -33,10 +33,11 @@ export const API_ENDPOINTS = {
     PUBLIC: '/api/media/public',
   },
   
-  // File Upload (FTP Bridge to Hostinger)
+  // File Upload (FTP Bridge to Hostinger & Cloudinary Integration)
   UPLOAD: {
     FILE: '/api/upload',
-    IMAGE: '/api/upload/image',
+    IMAGE: '/api/media/upload',           // Aligned for billboard photography
+    DOCUMENT: '/api/media/upload/document' // NEW: Targets specialized PDF route
   },
   
   // Bookings

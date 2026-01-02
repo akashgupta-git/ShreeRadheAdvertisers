@@ -15,13 +15,7 @@ export function MediaCard({ media }: MediaCardProps) {
   const getOptimizedImage = (url: string | undefined) => {
     if (!url) return "https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?q=80&w=1000";
     
-    // If it's a Cloudinary URL, inject transformation parameters for bandwidth saving
     if (url.includes('cloudinary.com')) {
-      // w_600: Resizes to 600px width
-      // c_fill: Fills the aspect ratio
-      // g_auto: Intelligent cropping
-      // q_auto: Perceptual quality optimization (No blur, high detail)
-      // f_auto: Best format for browser (WebP/AVIF)
       return url.replace('/upload/', '/upload/w_600,c_fill,g_auto,q_auto,f_auto/');
     }
     return url;
@@ -51,21 +45,18 @@ export function MediaCard({ media }: MediaCardProps) {
           loading="lazy"
         />
         
-        {/* Top Left: Status Badge */}
         <div className="absolute top-3 left-3 z-10">
           <Badge className={`px-3 py-1 text-xs font-semibold shadow-md ${getStatusColor(media.status)}`}>
             {media.status}
           </Badge>
         </div>
 
-        {/* Top Right: Media Type Badge */}
         <div className="absolute top-3 right-3 z-10">
           <Badge variant="secondary" className="bg-white text-slate-900 border-none shadow-md px-3 py-1 font-bold hover:bg-white/90">
             {media.type}
           </Badge>
         </div>
         
-        {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
@@ -102,7 +93,10 @@ export function MediaCard({ media }: MediaCardProps) {
           <span className="text-lg font-bold text-primary">₹{media.pricePerMonth}<span className="text-xs font-normal text-muted-foreground">/mo</span></span>
         </div>
         <Button size="sm" asChild className="rounded-full px-4 shadow-sm hover:shadow-md transition-all">
-          <Link to={`/media/${media.id}`}>
+          {/* FIX: Prioritize MongoDB _id for dynamic persistence. 
+              This ensures the Details page can fetch the specific record from MongoDB.
+          */}
+          <Link to={`/media/${(media as any)._id || media.id}`}>
             View Details <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
           </Link>
         </Button>

@@ -23,75 +23,77 @@ export const mediaKeys = {
   public: () => [...mediaKeys.all, 'public'] as const,
 };
 
-// Fetch all media with filters (admin)
+// --- UPDATED: ADMIN MEDIA FETCH ---
 export function useMedia(filters: MediaFilters = {}) {
   return useQuery({
     queryKey: mediaKeys.list(filters),
     queryFn: async () => {
-      if (!isBackendConfigured()) {
-        let data = [...staticMedia] as unknown as MediaLocation[];
-        if (filters.status) data = data.filter(m => m.status === filters.status);
-        if (filters.type) data = data.filter(m => m.type === filters.type);
-        if (filters.state) data = data.filter(m => m.state === filters.state);
-        if (filters.search) {
-          const q = filters.search.toLowerCase();
-          data = data.filter(m => 
-            m.name.toLowerCase().includes(q) ||
-            m.city.toLowerCase().includes(q) ||
-            m.id.toLowerCase().includes(q)
-          );
-        }
-        return { success: true, data, pagination: { page: 1, limit: 100, total: data.length, totalPages: 1 } };
+      // Prioritize Backend
+      if (isBackendConfigured()) {
+        const params: Record<string, string | number | boolean | undefined> = {
+          state: filters.state,
+          district: filters.district,
+          city: filters.city,
+          type: filters.type,
+          status: filters.status,
+          minPrice: filters.minPrice,
+          maxPrice: filters.maxPrice,
+          search: filters.search,
+        };
+        
+        return await apiClient.get<PaginatedResponse<MediaLocation>>(
+          API_ENDPOINTS.MEDIA.LIST,
+          params
+        );
       }
 
-      const params: Record<string, string | number | boolean | undefined> = {
-        state: filters.state,
-        district: filters.district,
-        city: filters.city,
-        type: filters.type,
-        status: filters.status,
-        minPrice: filters.minPrice,
-        maxPrice: filters.maxPrice,
-        search: filters.search,
-      };
-      
-      return await apiClient.get<PaginatedResponse<MediaLocation>>(
-        API_ENDPOINTS.MEDIA.LIST,
-        params
-      );
+      // Local fallback only if no backend URL exists
+      let data = [...staticMedia] as unknown as MediaLocation[];
+      if (filters.status) data = data.filter(m => m.status === filters.status);
+      if (filters.type) data = data.filter(m => m.type === filters.type);
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        data = data.filter(m => 
+          m.name.toLowerCase().includes(q) || m.id.toLowerCase().includes(q)
+        );
+      }
+      return { success: true, data, pagination: { page: 1, limit: 100, total: data.length, totalPages: 1 } };
     },
     staleTime: 5 * 60 * 1000,
   });
 }
 
-// Fetch public media (no auth required)
+// --- FIXED: PUBLIC VIEW PERSISTENCE ---
 export function usePublicMedia(filters: MediaFilters = {}) {
   return useQuery({
     queryKey: [...mediaKeys.public(), filters],
     queryFn: async () => {
-      if (!isBackendConfigured()) {
-        let data = staticMedia.filter(m => m.status !== 'Coming Soon') as unknown as MediaLocation[];
-        if (filters.type) data = data.filter(m => m.type === filters.type);
-        if (filters.state) data = data.filter(m => m.state === filters.state);
-        if (filters.city) data = data.filter(m => m.city === filters.city);
-        return { success: true, data, pagination: { page: 1, limit: 100, total: data.length, totalPages: 1 } };
+      // Force fetch from MongoDB to ensure public sees admin changes
+      if (isBackendConfigured()) {
+        const params: Record<string, string | number | boolean | undefined> = {
+          state: filters.state,
+          district: filters.district,
+          city: filters.city,
+          type: filters.type,
+          status: filters.status,
+          search: filters.search,
+        };
+        
+        return await apiClient.get<PaginatedResponse<MediaLocation>>(
+          API_ENDPOINTS.MEDIA.PUBLIC,
+          params
+        );
       }
 
-      const params: Record<string, string | number | boolean | undefined> = {
-        state: filters.state,
-        district: filters.district,
-        city: filters.city,
-        type: filters.type,
-        status: filters.status,
-        search: filters.search,
+      // Offline fallback
+      return { 
+        success: true, 
+        data: staticMedia.filter(m => m.status !== 'Coming Soon') as unknown as MediaLocation[], 
+        pagination: { page: 1, limit: 100, total: 0, totalPages: 1 } 
       };
-      
-      return await apiClient.get<PaginatedResponse<MediaLocation>>(
-        API_ENDPOINTS.MEDIA.PUBLIC,
-        params
-      );
     },
-    staleTime: 5 * 60 * 1000,
+    // Shorter staleTime for public so they see new billboards faster
+    staleTime: 1 * 60 * 1000, 
   });
 }
 
@@ -100,17 +102,17 @@ export function useMediaById(id: string) {
   return useQuery({
     queryKey: mediaKeys.detail(id),
     queryFn: async () => {
-      if (!isBackendConfigured()) {
-        const media = staticMedia.find(m => m.id === id);
-        if (!media) return null; 
-        return media as unknown as MediaLocation;
+      if (isBackendConfigured()) {
+        const response = await apiClient.get<ApiResponse<MediaLocation>>(
+          API_ENDPOINTS.MEDIA.GET(id) // This should hit /api/media/:id
+        );
+        // Ensure we return the data property from the API response
+        return response?.data || null;
       }
 
-      const response = await apiClient.get<ApiResponse<MediaLocation>>(
-        API_ENDPOINTS.MEDIA.GET(id)
-      );
-      
-      return response?.data || null;
+      // Fallback to static data
+      const media = staticMedia.find(m => m.id === id);
+      return media ? (media as unknown as MediaLocation) : null;
     },
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
@@ -120,20 +122,15 @@ export function useMediaById(id: string) {
 // Create new media
 export function useCreateMedia() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (data: CreateMediaRequest) => {
       if (!isBackendConfigured()) throw new Error('Backend not configured.');
-
-      const response = await apiClient.post<ApiResponse<MediaLocation>>(
-        API_ENDPOINTS.MEDIA.CREATE,
-        data
-      );
-      
+      const response = await apiClient.post<ApiResponse<MediaLocation>>(API_ENDPOINTS.MEDIA.CREATE, data);
       return response.data || response; 
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: mediaKeys.lists() });
+      // Invalidate both admin and public lists so UI updates everywhere
+      queryClient.invalidateQueries({ queryKey: mediaKeys.all });
     },
   });
 }
@@ -141,19 +138,14 @@ export function useCreateMedia() {
 // Update media
 export function useUpdateMedia() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: UpdateMediaRequest }) => {
       if (!isBackendConfigured()) throw new Error('Backend not configured.');
-
-      const response = await apiClient.put<ApiResponse<MediaLocation>>(
-        API_ENDPOINTS.MEDIA.UPDATE(id),
-        data
-      );
+      const response = await apiClient.put<ApiResponse<MediaLocation>>(API_ENDPOINTS.MEDIA.UPDATE(id), data);
       return response.data || response;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: mediaKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: mediaKeys.all });
       queryClient.invalidateQueries({ queryKey: mediaKeys.detail(variables.id) });
     },
   });
@@ -162,14 +154,13 @@ export function useUpdateMedia() {
 // Delete media (soft delete)
 export function useDeleteMedia() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (id: string) => {
       if (!isBackendConfigured()) throw new Error('Backend not configured.');
       await apiClient.delete(API_ENDPOINTS.MEDIA.DELETE(id));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: mediaKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: mediaKeys.all });
     },
   });
 }
@@ -177,72 +168,46 @@ export function useDeleteMedia() {
 // Restore media from recycle bin
 export function useRestoreMedia() {
   const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: async (id: string) => {
       if (!isBackendConfigured()) throw new Error('Backend not configured.');
-      const response = await apiClient.post<ApiResponse<MediaLocation>>(
-        API_ENDPOINTS.MEDIA.RESTORE(id)
-      );
+      const response = await apiClient.post<ApiResponse<MediaLocation>>(API_ENDPOINTS.MEDIA.RESTORE(id));
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: mediaKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: mediaKeys.all });
     },
   });
 }
 
 /**
  * Upload Hook for Cloudinary Organization (Images)
- * Organizes photography into ShreeRadhe/Districts/[District]/Images
  */
 export function useUploadMediaImage() {
   return useMutation({
-    mutationFn: async ({ 
-      file, 
-      customId, 
-      district 
-    }: { 
-      file: File; 
-      customId: string; 
-      district: string 
-    }) => {
+    mutationFn: async ({ file, customId, district }: { file: File; customId: string; district: string }) => {
       if (!isBackendConfigured()) throw new Error('Backend not configured.');
-
-      return await apiClient.uploadFile(
-        API_ENDPOINTS.UPLOAD.IMAGE,
-        file,
-        { customId, district }
-      );
+      return await apiClient.uploadFile(API_ENDPOINTS.UPLOAD.IMAGE, file, { customId, district });
     },
   });
 }
 
 /**
  * Upload Hook for Organized Documents (PDFs)
- * Organizes Tenders/Taxes into ShreeRadhe/Districts/[District]/Documents
  */
 export function useUploadDocument() {
   return useMutation({
-    mutationFn: async ({ 
-      file, 
-      customId, 
-      district, 
-      type 
-    }: { 
+    mutationFn: async (payload: { 
       file: File; 
       customId: string; 
       district: string; 
-      type: 'tender' | 'tax' | 'general' 
+      type: 'tender' | 'tax' | 'general';
+      [key: string]: any; 
     }) => {
       if (!isBackendConfigured()) throw new Error('Backend not configured.');
-
-      // Using the specialized document route on the backend
-      return await apiClient.uploadFile(
-        '/upload/document', 
-        file,
-        { customId, district, type }
-      );
+      const { file, ...metadata } = payload;
+      const documentEndpoint = API_ENDPOINTS.UPLOAD.DOCUMENT;
+      return await apiClient.uploadFile(documentEndpoint, file, metadata);
     },
   });
 }
