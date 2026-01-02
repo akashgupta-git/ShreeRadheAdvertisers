@@ -1,74 +1,75 @@
-const ftp = require("basic-ftp");
-const path = require("path");
+const Client = require('ssh2-sftp-client');
+const path = require('path');
 
-// Increased timeout to 90 seconds for production stability
-const ftpConfig = {
-    host: process.env.FTP_HOST,
-    user: process.env.FTP_USER,
+const sftpConfig = {
+    host: process.env.FTP_HOST, 
+    // Hostinger typically uses 65002 for SFTP/SSH access
+    port: parseInt(process.env.SFTP_PORT || '65002'), 
+    username: process.env.FTP_USER,
     password: process.env.FTP_PASSWORD,
-    port: 21,
-    secure: false, 
-    timeout: 90000, //
-    settings: {
-        retries: 5, // Increased retries for transient network issues
-        retryDelay: 5000
-    }
+    retries: 3,
+    retryDelay: 2000,
+    readyTimeout: 20000 
 };
 
 /**
- * Uploads a file using standard FTP
+ * Uploads a file using SFTP (Secure Shell File Transfer Protocol)
+ * Resolves production 'Timeout (control socket)' errors by using a single secure channel.
  */
 const uploadToFTP = async (localPath, remotePath) => {
-    // 1. Pass a 0 timeout to disable control socket timeouts during transfer
-    const client = new ftp.Client(0); 
-    client.ftp.verbose = true;
+    const sftp = new Client();
     
     try {
-        // 2. Disable NAT traversal issues common on Render
-        client.ftp.allowSeparateTransferHost = false; 
+        console.log('=== SFTP Secure Upload Initiation ===');
+        console.log('Local source:', localPath);
+        console.log('Remote destination:', remotePath);
 
-        await client.access({
-            host: process.env.FTP_HOST,
-            user: process.env.FTP_USER,
-            password: process.env.FTP_PASSWORD,
-            port: 21,
-            secure: false, // TLS handshakes often cause timeouts in cloud envs
-            timeout: 90000 // 90 second global timeout
-        });
+        await sftp.connect(sftpConfig);
+        console.log('SFTP connection established successfully');
 
-        client.ftp.pasv = true;
-
+        // Ensure the remote directory exists recursively
         const remoteDir = path.dirname(remotePath);
-        await client.ensureDir(remoteDir);
+        console.log('Ensuring directory exists:', remoteDir);
+        await sftp.mkdir(remoteDir, true); 
 
-        // 3. Fast upload directly from stream
-        await client.uploadFrom(localPath, path.basename(remotePath));
+        // Upload the file directly to the remote path
+        await sftp.put(localPath, remotePath);
+        console.log(`File securely transferred to: ${remotePath}`);
 
+        // Construct public URL logic
         const baseUrl = process.env.CDN_BASE_URL || 'https://shreeradheadvertisers.com';
-        const webPath = remotePath.replace('public_html/', '');
-        return `${baseUrl.replace(/\/$/, '')}/${webPath.replace(/^\//, '')}`;
+        
+        // Isolate the web-accessible path after 'public_html/'
+        const webPathParts = remotePath.split('public_html/');
+        const webPath = webPathParts.length > 1 ? webPathParts[1] : remotePath;
+        
+        const finalUrl = `${baseUrl.replace(/\/$/, '')}/${webPath.replace(/^\//, '')}`;
+        console.log('Generated Public URL:', finalUrl);
+
+        return finalUrl;
     } catch (error) {
-        console.error('FTP Error:', error.message);
+        console.error('SFTP Operation Error:', error.message);
         throw error;
     } finally {
-        client.close();
+        // Disconnect after each operation
+        await sftp.end();
     }
 };
 
 /**
- * Deletes a file using standard FTP
+ * Deletes a file via SFTP
  */
 const deleteFromFTP = async (remotePath) => {
-    const client = new ftp.Client(90000);
+    const sftp = new Client();
     try {
-        await client.access(ftpConfig);
-        await client.remove(remotePath);
-        console.log(`File deleted via FTP: ${remotePath}`);
+        await sftp.connect(sftpConfig);
+        await sftp.delete(remotePath);
+        console.log(`File deleted via SFTP: ${remotePath}`);
     } catch (error) {
-        console.error('FTP delete error:', error.message);
+        console.error('SFTP Deletion Error:', error.message);
         throw error;
     } finally {
-        client.close();
+        await sftp.end();
     }
 };
 
