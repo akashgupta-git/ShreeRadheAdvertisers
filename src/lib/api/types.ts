@@ -1,5 +1,3 @@
-// MongoDB Schema Types for Shree Radhe Advertisers Backend
-
 // ============= ENUMS =============
 export type MediaType = 'Unipole' | 'Hoarding' | 'Gantry' | 'Kiosk' | 'Digital LED';
 export type MediaStatus = 'Available' | 'Booked' | 'Coming Soon' | 'Maintenance';
@@ -73,8 +71,10 @@ export interface MediaLocation {
   size: string;
   lighting: LightingType;
   facing: string;
-  image: string; 
-  images?: string[]; 
+  // FIX: Explicitly defined for Hostinger SSD absolute URLs
+  imageUrl?: string;
+  image?: string;
+  images?: string[];
   pricePerMonth: number;
   latitude?: number;
   longitude?: number;
@@ -254,8 +254,7 @@ export interface OccupancyData {
 
 // ============= REQUEST TYPES =============
 export interface CreateMediaRequest {
-  _id: string;
-  id: string; // Add this line
+  id: string; 
   name: string;
   type: MediaType;
   state: string;
@@ -267,11 +266,15 @@ export interface CreateMediaRequest {
   facing?: string;
   pricePerMonth: number;
   status: MediaStatus;
+  // FIX: Include imageUrl to support new creation logic
+  imageUrl?: string;
   image?: string;
   landmark?: string;
 }
 
 export interface UpdateMediaRequest extends Partial<CreateMediaRequest> {
+  // FIX: Ensure updates can modify imageUrl explicitly
+  imageUrl?: string;
   image?: string;
   images?: string[];
 }

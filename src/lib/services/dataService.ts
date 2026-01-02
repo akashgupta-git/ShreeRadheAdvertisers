@@ -9,6 +9,7 @@ import type {
   Customer as ApiCustomer,
   MediaFilters,
   BookingFilters,
+  MediaLocation, // Import the main interface to enforce types
 } from '@/lib/api/types';
 
 // Re-export types for components
@@ -20,35 +21,46 @@ export const isBackendConfigured = (): boolean => {
   return !!url && url !== 'http://localhost:5000' && !url.includes('https://shreeradhe-backend.onrender.com');
 };
 
-// Type adapter: Convert API types to frontend types
-export const adaptMediaLocation = (apiMedia: any) => ({
-  _id: apiMedia._id,
-  id: apiMedia.id || apiMedia._id,
-  name: apiMedia.name,
-  type: apiMedia.type,
-  state: apiMedia.state,
-  district: apiMedia.district,
-  city: apiMedia.city,
-  address: apiMedia.address,
-  status: apiMedia.status,
-  
-  // FIX: Map backend 'imageUrl' (Hostinger SSD URL) to frontend 'image' property
-  image: apiMedia.imageUrl || apiMedia.image,
-  
-  // Ensure technical specifications flow correctly from DB
-  size: apiMedia.size || 'Standard',
-  lighting: apiMedia.lighting || 'Non-Lit',
-  facing: apiMedia.facing || 'N/A',
-  
-  pricePerMonth: apiMedia.pricePerMonth || 0,
-  landmark: apiMedia.landmark || '',
-  occupancyRate: apiMedia.occupancyRate || 0,
-  totalDaysBooked: apiMedia.totalDaysBooked || 0,
-  bookedDates: apiMedia.bookedDates || [],
-  deleted: apiMedia.deleted || false,
-  createdAt: apiMedia.createdAt,
-  updatedAt: apiMedia.updatedAt,
-});
+/**
+ * Type adapter: Convert API types to frontend types
+ * FIX: Explicitly typed as MediaLocation to resolve "Property imageUrl does not exist"
+ */
+export const adaptMediaLocation = (apiMedia: any): MediaLocation => {
+  // Bridge the naming gap: ensure we have a valid string for the image source
+  const finalImageUrl = apiMedia.imageUrl || apiMedia.image || '';
+
+  return {
+    _id: apiMedia._id,
+    id: apiMedia.id || apiMedia._id,
+    name: apiMedia.name || 'Unnamed Location',
+    type: apiMedia.type || 'Hoarding',
+    state: apiMedia.state || '',
+    district: apiMedia.district || 'N/A',
+    city: apiMedia.city || 'N/A',
+    address: apiMedia.address || '',
+    status: apiMedia.status || 'Available',
+    
+    // Primary field for Hostinger SSD URLs
+    imageUrl: finalImageUrl,
+    
+    // Compatibility field for legacy components
+    image: finalImageUrl,
+    
+    // Ensure technical specifications flow correctly from DB
+    size: apiMedia.size || 'Standard',
+    lighting: apiMedia.lighting || 'Non-Lit',
+    facing: apiMedia.facing || 'N/A',
+    
+    pricePerMonth: Number(apiMedia.pricePerMonth) || 0,
+    landmark: apiMedia.landmark || '',
+    occupancyRate: apiMedia.occupancyRate || 0,
+    totalDaysBooked: apiMedia.totalDaysBooked || 0,
+    bookedDates: apiMedia.bookedDates || [],
+    deleted: apiMedia.deleted || false,
+    createdAt: apiMedia.createdAt || new Date().toISOString(),
+    updatedAt: apiMedia.updatedAt || new Date().toISOString(),
+  };
+};
 
 export const adaptBooking = (apiBooking: ApiBooking) => ({
   id: apiBooking.id || apiBooking._id,
@@ -93,6 +105,7 @@ export const formatCurrency = (amount: number): string => {
 
 // Format date
 export const formatDate = (dateString: string): string => {
+  if (!dateString) return 'N/A';
   return new Date(dateString).toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',

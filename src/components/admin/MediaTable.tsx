@@ -118,7 +118,7 @@ export function MediaTable({ data, onDelete, onEdit, onToggleStatus }: MediaTabl
                 <TableRow key={itemId} className="hover:bg-muted/10 group">
                   <TableCell className="font-mono text-[10px] pl-6 text-muted-foreground">
                     {/* #{itemId.substring(0, 8)} */}
-                    {media._id}
+                    {media.id}
                   </TableCell>
                   <TableCell className="font-semibold text-sm">{media.name}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">

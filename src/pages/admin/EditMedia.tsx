@@ -39,25 +39,26 @@ const EditMedia = () => {
     lighting: '',
     facing: '',
     pricePerMonth: '',
+    imageUrl: '', 
   });
 
-  // Populate form with existing data once loaded
   useEffect(() => {
     if (media) {
       setFormData({
-        customId: media.id || media.landmark || '', 
-        name: media.name,
-        type: media.type,
-        state: media.state,
-        district: media.district,
-        city: media.city,
+        customId: media.id || '',
+        name: media.name || '',
+        type: media.type || '',
+        state: media.state || '',
+        district: media.district || '',
+        city: media.city || '',
         address: media.address || '',
         size: media.size || '',
         lighting: media.lighting || '',
         facing: media.facing || '',
-        pricePerMonth: String(media.pricePerMonth),
+        pricePerMonth: String(media.pricePerMonth || ''),
+        imageUrl: media.imageUrl || media.image || '', 
       });
-      setPreviewUrl(media.image || null);
+      setPreviewUrl(media.imageUrl || media.image || null);
     }
   }, [media]);
 
@@ -80,6 +81,58 @@ const EditMedia = () => {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      let finalImageUrl = formData.imageUrl;
+
+      // 1. Upload to Hostinger
+      if (selectedFile && isBackendConfigured()) {
+        const uploadResponse: any = await uploadImage.mutateAsync({ 
+          file: selectedFile, 
+          folder: 'media' 
+        });
+        finalImageUrl = uploadResponse.url; 
+      }
+
+      if (isBackendConfigured() && media) {
+        // 2. Submit with explicit imageUrl mapping
+        await updateMedia.mutateAsync({
+          id: (media._id || id)!,
+          data: {
+            id: formData.customId,
+            name: formData.name,
+            type: formData.type as any,
+            state: formData.state,
+            district: formData.district,
+            city: formData.city,
+            address: formData.address,
+            size: formData.size,
+            lighting: formData.lighting as any,
+            facing: formData.facing,
+            pricePerMonth: Number(formData.pricePerMonth),
+            imageUrl: finalImageUrl, // FIX: Save to imageUrl field
+            landmark: formData.customId
+          }
+        });
+      }
+
+      toast({ title: "Updated Successfully" });
+      navigate('/admin/media');
+    } catch (error: any) {
+      console.error("Update Error:", error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || error.message, 
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -97,48 +150,6 @@ const EditMedia = () => {
     );
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      let permanentImageUrl = previewUrl;
-
-      if (selectedFile && isBackendConfigured()) {
-        const uploadResponse: any = await uploadImage.mutateAsync({ file: selectedFile, folder: 'media' });
-        permanentImageUrl = uploadResponse.url; 
-      }
-
-      if (isBackendConfigured() && id) {
-        await updateMedia.mutateAsync({
-          id,
-          data: {
-            id: formData.customId,
-            name: formData.name,
-            type: formData.type as any,
-            state: formData.state,
-            district: formData.district,
-            city: formData.city,
-            address: formData.address,
-            size: formData.size,
-            lighting: formData.lighting as any,
-            facing: formData.facing,
-            pricePerMonth: Number(formData.pricePerMonth),
-            image: permanentImageUrl || undefined,
-            landmark: formData.customId
-          }
-        });
-      }
-
-      toast({ title: "Updated Successfully" });
-      navigate('/admin/media');
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -147,7 +158,7 @@ const EditMedia = () => {
         </Button>
         <div>
           <h1 className="text-2xl font-bold mb-1">Edit Media</h1>
-          <p className="text-muted-foreground">Update media location: {formData.name}</p>
+          <p className="text-muted-foreground font-mono text-sm">{formData.customId}</p>
         </div>
       </div>
 
@@ -161,18 +172,16 @@ const EditMedia = () => {
                   <Label htmlFor="customId">Media ID *</Label>
                   <Input 
                     id="customId"
-                    placeholder="e.g., SRA-RPR-001"
+                    placeholder="e.g., SRA-DURG-001"
                     value={formData.customId}
                     onChange={(e) => setFormData({ ...formData, customId: e.target.value })}
                     required
                   />
-                  <p className="text-xs text-muted-foreground">Your custom identifier</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="name">Media Name *</Label>
-                  <Input 
+                  <Input
                     id="name"
-                    placeholder="e.g., Telibandha Unipole 1"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
@@ -213,14 +222,12 @@ const EditMedia = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>District *</Label>
-                  <Select 
+                  <Select
                     value={formData.district}
                     onValueChange={handleDistrictChange}
                     disabled={!formData.state}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select district" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger>
                     <SelectContent>
                       {availableDistricts.map(district => (
                         <SelectItem key={district} value={district}>{district}</SelectItem>
@@ -230,33 +237,18 @@ const EditMedia = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>City/Town *</Label>
-                  {availableCities.length > 0 ? (
-                    <Select 
-                      value={formData.city}
-                      onValueChange={(v) => setFormData({ ...formData, city: v })}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
-                      <SelectContent>
-                        {availableCities.map(city => (
-                          <SelectItem key={city} value={city}>{city}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input 
-                      placeholder={!formData.district ? "Select district first" : "Enter city name"}
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      disabled={!formData.district}
-                    />
-                  )}
+                  <Input 
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    placeholder="Enter city"
+                    disabled={!formData.district}
+                  />
                 </div>
               </div>
               <div className="mt-5 space-y-2">
                 <Label htmlFor="address">Full Address</Label>
                 <Textarea 
                   id="address"
-                  placeholder="Enter complete address"
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 />
@@ -268,16 +260,15 @@ const EditMedia = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-2">
                   <Label htmlFor="size">Size</Label>
-                  <Input 
+                  <Input
                     id="size"
-                    placeholder="e.g., 40x20 ft"
                     value={formData.size}
                     onChange={(e) => setFormData({ ...formData, size: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Lighting</Label>
-                  <Select 
+                  <Select
                     value={formData.lighting}
                     onValueChange={(v) => setFormData({ ...formData, lighting: v })}
                   >
@@ -292,9 +283,8 @@ const EditMedia = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="facing">Facing Direction</Label>
-                  <Input 
+                  <Input
                     id="facing"
-                    placeholder="e.g., Towards Railway Station"
                     value={formData.facing}
                     onChange={(e) => setFormData({ ...formData, facing: e.target.value })}
                   />
@@ -308,13 +298,13 @@ const EditMedia = () => {
               <h3 className="font-semibold mb-4">Media Image</h3>
               <input type="file" id="media-image" accept="image/*" onChange={handleFileChange} className="hidden" />
               <label htmlFor="media-image">
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 cursor-pointer">
+                <div className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 cursor-pointer">
                   {previewUrl ? (
-                    <img src={previewUrl} alt="Preview" className="w-full h-32 object-cover rounded mb-2" />
+                    <img src={previewUrl} alt="Preview" className="w-full aspect-video object-cover rounded mb-2" />
                   ) : (
-                    <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
+                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                   )}
-                  <p className="text-sm font-medium">{selectedFile ? selectedFile.name : 'Click to upload new image'}</p>
+                  <p className="text-xs">{selectedFile ? selectedFile.name : 'Change image'}</p>
                 </div>
               </label>
             </Card>
@@ -323,10 +313,9 @@ const EditMedia = () => {
               <h3 className="font-semibold mb-4">Pricing</h3>
               <div className="space-y-2">
                 <Label htmlFor="price">Monthly Rate (₹) *</Label>
-                <Input 
+                <Input
                   id="price"
                   type="number"
-                  placeholder="e.g., 100000"
                   value={formData.pricePerMonth}
                   onChange={(e) => setFormData({ ...formData, pricePerMonth: e.target.value })}
                   required
@@ -334,20 +323,18 @@ const EditMedia = () => {
               </div>
             </Card>
 
-            <Card className="p-6 bg-card border-border/50">
-              <div className="space-y-3">
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Updating...</>
-                  ) : (
-                    <><Save className="h-4 w-4 mr-2" /> Update Media</>
-                  )}
-                </Button>
-                <Button type="button" variant="outline" className="w-full" onClick={() => navigate(-1)}>
-                  Cancel
-                </Button>
-              </div>
-            </Card>
+            <div className="space-y-3">
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Updating...</>
+                ) : (
+                  <><Save className="h-4 w-4 mr-2" /> Save Changes</>
+                )}
+              </Button>
+              <Button type="button" variant="outline" className="w-full" onClick={() => navigate(-1)}>
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
       </form>

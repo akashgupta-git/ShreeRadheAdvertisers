@@ -83,34 +83,34 @@ const AddMedia = () => {
     try {
       let permanentImageUrl = '';
 
+      // 1. Upload to Hostinger
       if (selectedFile && isBackendConfigured()) {
         const uploadResponse: any = await uploadImage.mutateAsync({ 
-          file: selectedFile, 
-          folder: 'media' 
+          file: selectedFile,
+          folder: 'media'
         });
         permanentImageUrl = uploadResponse.url; 
       }
 
       if (isBackendConfigured()) {
-      await createMedia.mutateAsync({
-        // CRITICAL FIX: Send the custom ID as 'id' to match MongoDB index
-        id: formData.id,
-        name: formData.name,
-        type: formData.type as any,
-        state: formData.state,
-        district: formData.district,
-        city: formData.city,
-        address: formData.address,
-        size: formData.size,
-        lighting: formData.lighting as any,
-        facing: formData.facing,
-        pricePerMonth: Number(formData.pricePerMonth),
-        status: 'Available',
-        image: permanentImageUrl, 
-        // You can keep it in landmark as well if you use it elsewhere
-        landmark: formData.id 
-      });
-    }
+        // 2. Submit with explicit imageUrl mapping
+        await createMedia.mutateAsync({
+          id: formData.id,
+          name: formData.name,
+          type: formData.type as any,
+          state: formData.state,
+          district: formData.district,
+          city: formData.city,
+          address: formData.address,
+          size: formData.size,
+          lighting: formData.lighting as any,
+          facing: formData.facing,
+          pricePerMonth: Number(formData.pricePerMonth),
+          status: 'Available',
+          imageUrl: permanentImageUrl, // FIX: Use imageUrl field
+          landmark: formData.id
+        });
+      }
 
       toast({
         title: "Media Added Successfully!",
@@ -161,7 +161,6 @@ const AddMedia = () => {
                     onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                     required
                   />
-                  <p className="text-xs text-muted-foreground">Enter a unique identifier for this media</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="name">Media Name *</Label>
@@ -213,9 +212,7 @@ const AddMedia = () => {
                     onValueChange={handleDistrictChange}
                     disabled={!formData.state}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select district" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select district" /></SelectTrigger>
                     <SelectContent>
                       {availableDistricts.map(district => (
                         <SelectItem key={district} value={district}>{district}</SelectItem>
@@ -225,32 +222,12 @@ const AddMedia = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>City/Town *</Label>
-                  {availableCities.length > 0 ? (
-                    <Select 
-                      value={formData.city}
-                      onValueChange={(v) => setFormData({ ...formData, city: v })}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Select city" /></SelectTrigger>
-                      <SelectContent>
-                        {availableCities.map(city => (
-                          <SelectItem key={city} value={city}>{city}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <Input 
-                      placeholder={!formData.district ? "Select district first" : "Enter city name"}
-                      value={formData.city}
-                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                      disabled={!formData.district}
-                    />
-                  )}
-                  {/* Restored manual management prompt */}
-                  {formData.district && availableCities.length === 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      No cities added. Type manually or <button type="button" className="text-primary underline" onClick={() => setLocationDialogOpen(true)}>add cities</button>.
-                    </p>
-                  )}
+                  <Input 
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    placeholder="Enter city"
+                    disabled={!formData.district}
+                  />
                 </div>
               </div>
               <div className="mt-5 space-y-2">
@@ -269,7 +246,7 @@ const AddMedia = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-2">
                   <Label htmlFor="size">Size *</Label>
-                  <Input 
+                  <Input
                     id="size"
                     placeholder="e.g., 40x20 ft"
                     value={formData.size}
@@ -278,7 +255,7 @@ const AddMedia = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Lighting</Label>
-                  <Select 
+                  <Select
                     value={formData.lighting}
                     onValueChange={(v) => setFormData({ ...formData, lighting: v })}
                   >
@@ -291,10 +268,9 @@ const AddMedia = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                {/* Restored Facing Direction field */}
                 <div className="space-y-2">
                   <Label htmlFor="facing">Facing Direction</Label>
-                  <Input 
+                  <Input
                     id="facing"
                     placeholder="e.g., Towards Railway Station"
                     value={formData.facing}

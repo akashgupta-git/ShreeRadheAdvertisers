@@ -20,20 +20,19 @@ import {
 import { useMediaById } from "@/hooks/api/useMedia";
 import { isBackendConfigured } from "@/lib/api/config";
 import { adaptMediaLocation } from "@/lib/services/dataService";
+import { MediaLocation } from "@/lib/api/types"; // Import the type
 
 const AdminMediaDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // Try API first if backend is configured
   const { data: apiMedia, isLoading } = useMediaById(id || '');
   
-  // Use API data if available, otherwise fall back to static data
-  const media = isBackendConfigured() && apiMedia 
+  // FIX: Explicitly cast to MediaLocation to resolve the property access error
+  const media = (isBackendConfigured() && apiMedia 
     ? adaptMediaLocation(apiMedia as any)
-    : getMediaById(id || '');
+    : getMediaById(id || '')) as MediaLocation | null;
 
-  // Show loading state when fetching from API
   if (isBackendConfigured() && isLoading) {
     return (
       <div className="space-y-6">
@@ -67,6 +66,9 @@ const AdminMediaDetail = () => {
     );
   }
 
+  // Use the Hostinger absolute URL primarily, fallback to the image field or placeholder
+  const displayImage = media.imageUrl || media.image || 'https://placehold.co/800x450?text=Image+Not+Available';
+
   const statusVariant = 
     media.status === 'Available' ? 'success' :
     media.status === 'Booked' ? 'destructive' : 'warning';
@@ -82,7 +84,7 @@ const AdminMediaDetail = () => {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-2xl font-bold">{media.name}</h1>
-              <Badge variant={statusVariant}>{media.status}</Badge>
+              <Badge variant={statusVariant as any}>{media.status}</Badge>
             </div>
             <p className="text-muted-foreground font-mono">{media.id}</p>
           </div>
@@ -92,7 +94,7 @@ const AdminMediaDetail = () => {
             <Calendar className="h-4 w-4 mr-2" />
             Manage Availability
           </Button>
-          <Button onClick={() => navigate(`/admin/media/edit/${media.id}`)}>
+          <Button onClick={() => navigate(`/admin/media/edit/${id}`)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Media
           </Button>
@@ -100,17 +102,16 @@ const AdminMediaDetail = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Image - Mapping fixed via adaptMediaLocation */}
-          <Card className="overflow-hidden bg-card border-border/50">
+          {/* Main Media Image */}
+          <Card className="overflow-hidden bg-card border-border/50 shadow-sm">
             <img 
-              src={media.image} 
+              src={displayImage} 
               alt={media.name}
               className="w-full aspect-video object-cover"
               onError={(e) => {
-                // Fallback for broken image URLs
-                (e.target as HTMLImageElement).src = 'https://placehold.co/800x450?text=No+Image+Found';
+                // Fallback if the Hostinger URL fails to load
+                (e.target as HTMLImageElement).src = 'https://placehold.co/800x450?text=Error+Loading+Hostinger+File';
               }}
             />
           </Card>
@@ -118,10 +119,10 @@ const AdminMediaDetail = () => {
           {/* Specs Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { icon: Maximize, label: 'Size', value: media.size, color: 'primary' },
-              { icon: Lightbulb, label: 'Lighting', value: media.lighting, color: 'warning' },
-              { icon: Compass, label: 'Facing', value: media.facing, color: 'success' },
-              { icon: MapPin, label: 'District', value: media.district, color: 'destructive' },
+              { icon: Maximize, label: 'Size', value: media.size || 'N/A', color: 'primary' },
+              { icon: Lightbulb, label: 'Lighting', value: media.lighting || 'Non-Lit', color: 'warning' },
+              { icon: Compass, label: 'Facing', value: media.facing || 'N/A', color: 'success' },
+              { icon: MapPin, label: 'District', value: media.district || 'N/A', color: 'destructive' },
             ].map((spec) => (
               <Card key={spec.label} className="p-4 bg-card border-border/50">
                 <div className="flex items-center gap-3">
@@ -169,10 +170,8 @@ const AdminMediaDetail = () => {
               <div>
                 <h3 className="font-semibold mb-2">AI Performance Insight</h3>
                 <p className="text-sm text-muted-foreground">
-                  This {media.type.toLowerCase()} shows <span className="text-foreground font-medium">high demand during summer months (March–June)</span> and 
-                  remains underutilized during monsoon season. Consider offering promotional rates 
-                  during July–September to improve occupancy. The high traffic location 
-                  makes it ideal for brand awareness campaigns.
+                  This {media.type.toLowerCase()} shows <span className="text-foreground font-medium">high demand during summer months (March–June)</span>. 
+                  Consider offering promotional rates during monsoon season to improve occupancy.
                 </p>
               </div>
             </div>
@@ -181,7 +180,6 @@ const AdminMediaDetail = () => {
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Location Info */}
           <Card className="p-6 bg-card border-border/50">
             <h3 className="font-semibold mb-4">Location Details</h3>
             <div className="space-y-4 text-sm">
@@ -209,7 +207,6 @@ const AdminMediaDetail = () => {
             </div>
           </Card>
 
-          {/* Metrics */}
           <Card className="p-6 bg-card border-border/50">
             <h3 className="font-semibold mb-4">Performance Metrics</h3>
             <div className="space-y-5">
@@ -221,12 +218,8 @@ const AdminMediaDetail = () => {
                 <Progress value={media.occupancyRate} className="h-2" />
               </div>
               <div className="flex items-center justify-between py-3 border-t border-border">
-                <span className="text-sm text-muted-foreground">Total Days Booked</span>
-                <span className="font-medium">{media.totalDaysBooked} days</span>
-              </div>
-              <div className="flex items-center justify-between py-3 border-t border-border">
                 <span className="text-sm text-muted-foreground">Monthly Rate</span>
-                <span className="font-medium">₹{media.pricePerMonth.toLocaleString()}</span>
+                <span className="font-medium">₹{media.pricePerMonth?.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between py-3 border-t border-border">
                 <span className="text-sm text-muted-foreground">Estimated Revenue</span>
@@ -237,7 +230,6 @@ const AdminMediaDetail = () => {
             </div>
           </Card>
 
-          {/* Type Badge */}
           <Card className="p-6 bg-card border-border/50">
             <div className="flex items-center gap-4">
               <div className="p-4 rounded-xl bg-primary/10">
