@@ -279,6 +279,7 @@ const Documents = () => {
         customId: targetTax.tenderNumber,
         district: targetTax.district,
         type: 'tax',
+        taxId: payTaxId,
         licenseFee: targetTax.amount.toString()
       });
       queryClient.invalidateQueries({ queryKey: ['compliance'] });
@@ -459,10 +460,10 @@ const Documents = () => {
                                         <Button size="sm" onClick={() => { setPayTaxId(tax.id); setSelectedFile(null); setIsPayDialogOpen(true); }}>Mark Paid</Button>
                                     ) : (
                                       <>
-                                        <Button variant="outline" size="sm" onClick={() => window.open(tax.documentUrl, '_blank')}>
+                                        <Button variant="outline" size="sm" onClick={() => window.open(tax.receiptUrl, '_blank')}>
                                           <Eye className="h-3 w-3 mr-1" /> View
                                         </Button>
-                                        <Button variant="outline" size="sm" onClick={() => handleDownload(tax.documentUrl, `${tax.tenderNumber}_receipt.pdf`)}>
+                                        <Button variant="outline" size="sm" onClick={() => handleDownload(tax.receiptUrl, `${tax.tenderNumber}_receipt.pdf`)}>
                                           <Download className="h-3 w-3 mr-1" /> Download
                                         </Button>
                                       </>

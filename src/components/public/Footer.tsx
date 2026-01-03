@@ -38,15 +38,35 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Media Types</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>Unipoles</li>
-              <li>Hoardings</li>
-              <li>Digital LED</li>
-              <li>Gantries</li>
-              <li>Kiosks</li>
-            </ul>
-          </div>
+  <h4 className="font-semibold mb-4">Media Types</h4>
+  <ul className="space-y-2 text-sm text-muted-foreground">
+    <li>
+      <Link to="/explore" state={{ filter: "Unipoles" }} className="hover:text-primary transition-colors">
+        Unipoles
+      </Link>
+    </li>
+    <li>
+      <Link to="/explore" state={{ filter: "Hoardings" }} className="hover:text-primary transition-colors">
+        Hoardings
+      </Link>
+    </li>
+    <li>
+      <Link to="/explore" state={{ filter: "Digital LED" }} className="hover:text-primary transition-colors">
+        Digital LED
+      </Link>
+    </li>
+    <li>
+      <Link to="/explore" state={{ filter: "Gantries" }} className="hover:text-primary transition-colors">
+        Gantries
+      </Link>
+    </li>
+    <li>
+      <Link to="/explore" state={{ filter: "Kiosks" }} className="hover:text-primary transition-colors">
+        Kiosks
+      </Link>
+    </li>
+  </ul>
+</div>
 
           <div>
             <h4 className="font-semibold mb-4">Contact</h4>

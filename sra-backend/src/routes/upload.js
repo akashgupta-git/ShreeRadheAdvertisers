@@ -108,17 +108,31 @@ router.post('/document', authMiddleware, upload.single('file'), async (req, res)
       if (pendingTaxInstallments.length > 0) {
         await TaxRecord.insertMany(pendingTaxInstallments);
       }
-    } 
+    }
+
     else if (type === 'tax') {
-      const newTax = new TaxRecord({
-        tenderNumber: customId,
-        district,
-        amount: Number(licenseFee) || 0,
-        documentUrl: fileUrl,
-        status: 'Paid',
-        paymentDate: new Date()
-      });
-      await newTax.save();
+      // 1. Get the specific Tax Record ID from the request body
+      const { taxId } = req.body;
+
+      if (!taxId) {
+        return res.status(400).json({ message: 'Tax Record ID is required to mark as paid' });
+      }
+
+      // 2. Update the existing pending record instead of creating a new one
+      const updatedTax = await TaxRecord.findByIdAndUpdate(
+        taxId,
+        { 
+          // Use 'receiptUrl' as defined in your TaxRecord model
+          receiptUrl: fileUrl, 
+          status: 'Paid', 
+          paymentDate: new Date() 
+        },
+        { new: true }
+      );
+
+      if (!updatedTax) {
+        return res.status(404).json({ message: 'Target tax record not found' });
+      }
     }
 
     if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
